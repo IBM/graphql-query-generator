@@ -114,7 +114,7 @@ function getName (name: string) : NameNode {
   }
 }
 
-function isNestedField (field: FieldDefinitionNode) : boolean {
+function isNestedField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
   return typeof schema.getType(getTypeName(field.type)).astNode !== 'undefined'
 }
 
@@ -172,8 +172,8 @@ function getRandomFields (
   }
 
   const results = []
-  const nested = cleanFields.filter(isNestedField)
-  const flat = cleanFields.filter(field => !isNestedField(field))
+  const nested = cleanFields.filter(field => isNestedField(field, schema))
+  const flat = cleanFields.filter(field => !isNestedField(field, schema))
   const nextIsLeaf = depth + 1 === config.maxDepth
   const pickNested = Math.random() <= config.depthProbability
   // console.log(` depth=${depth}, maxDepth=${config.maxDepth}, nextIsLeaf=${nextIsLeaf}, pickOneNested=${pickOneNested} cleanFields= ${cleanFields.map(f => f.name.value).join(', ')}`)
@@ -334,26 +334,3 @@ export function buildRandomQuery (
   const definitions = [getQueryOperationDefinition(schema, finalConfig)]
   return getDocumentDefinition(definitions)
 }
-
-// kick things of:
-const schemaDef = fs.readFileSync('./src/schema.graphql').toString()
-// const schemaDef = fs.readFileSync('./src/github.graphql').toString()
-const schema = buildSchema(schemaDef)
-const config : Configuration = {
-  breadthProbability: 0.4,
-  depthProbability: 0.4,
-  maxDepth: 10,
-  argumentsToIgnore: [
-    'before',
-    'after',
-    'last'
-  ],
-  argumentsToConsider: [
-    'first'
-  ],
-  ignoreOptionalArguments: true
-}
-// const mutationAst = buildRandomMutation(schema, config)
-// console.log(print(mutationAst))
-const queryAst = buildRandomQuery(schema, config)
-console.log(print(queryAst))
