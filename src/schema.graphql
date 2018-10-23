@@ -7,6 +7,7 @@ type User implements Node {
   company(id: String): Company
   employerCompany: Company
   pastEmployers(max: Int! = 1): [Company]
+  id: ID
 }
 
 type DirectorConnection {
@@ -18,7 +19,7 @@ type Company implements Node {
   name: String
   legalForm: String
   ceo: User
-  id: String
+  id: ID
   employees(limit: Int! = 1): [User]
   directors(limit: Int! = 1): DirectorConnection
 }

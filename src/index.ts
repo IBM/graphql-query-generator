@@ -34,7 +34,13 @@ const DEFAULT_CONFIG : Configuration = {
 }
 
 // default loc: {start: 0, end: 0}
-const loc : Location = {start: 0, end: 0, startToken: null, endToken: null, source: null}
+const loc : Location = {
+  start: 0,
+  end: 0,
+  startToken: null,
+  endToken: null,
+  source: null
+}
 
 function getDocumentDefinition (definitions) : DocumentNode {
   return {
@@ -49,7 +55,7 @@ function getQueryOperationDefinition (
   config: Configuration
 ) : OperationDefinitionNode {
   const node = schema.getQueryType().astNode
-  const {selectionSet, variableDefinitions} = getSelectionSetAndVars(schema, node, config)
+  const {selectionSet, variableDefinitionsMap} = getSelectionSetAndVars(schema, node, config)
   
   // throw error if query would be empty:
   if (selectionSet.selections.length === 0) {
@@ -60,7 +66,7 @@ function getQueryOperationDefinition (
     kind: 'OperationDefinition',
     operation: 'query',
     selectionSet,
-    variableDefinitions,
+    variableDefinitions: Object.values(variableDefinitionsMap),
     loc,
     name: getName('RandomQuery')
   }
@@ -71,7 +77,7 @@ function getMutationOperationDefinition(
   config: Configuration
 ) : OperationDefinitionNode {
   const node = schema.getMutationType().astNode
-  const {selectionSet, variableDefinitions} = getSelectionSetAndVars(schema, node, config)
+  const {selectionSet, variableDefinitionsMap} = getSelectionSetAndVars(schema, node, config)
   
   // throw error if mutation would be empty:
   if (selectionSet.selections.length === 0) {
@@ -82,7 +88,7 @@ function getMutationOperationDefinition(
     kind: 'OperationDefinition',
     operation: 'mutation',
     selectionSet,
-    variableDefinitions,
+    variableDefinitions: Object.values(variableDefinitionsMap),
     loc,
     name: getName('RandomMutation')
   }
@@ -100,7 +106,7 @@ function getTypeName (type: TypeNode) : string {
   }
 }
 
-function isMandatory (type: TypeNode) : boolean {
+function isMandatoryType (type: TypeNode) : boolean {
   return type.kind === 'NonNullType'
 }
 
@@ -123,7 +129,7 @@ function isInterfaceField (field: FieldDefinitionNode, schema: GraphQLSchema) : 
 function considerArgument (arg: InputValueDefinitionNode, config: Configuration) : boolean {
   const isArgumentToIgnore = config.argumentsToIgnore.includes(arg.name.value)
   const isArgumentToConsider = config.argumentsToConsider.includes(arg.name.value)
-  const isMand = isMandatory(arg.type)
+  const isMand = isMandatoryType(arg.type)
   const isOptional = !isMand
 
   // checks for consistency:
@@ -136,6 +142,10 @@ function considerArgument (arg: InputValueDefinitionNode, config: Configuration)
   }
 
   // return value based on options:
+  if (isMand) {
+    return true
+  }
+
   if (isArgumentToConsider) {
     return true
   }
@@ -151,7 +161,8 @@ function considerArgument (arg: InputValueDefinitionNode, config: Configuration)
 
 function isUnionField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
-  return typeof ast !== 'undefined' && ast.kind === 'UnionTypeDefinition'}
+  return typeof ast !== 'undefined' && ast.kind === 'UnionTypeDefinition'
+}
 
 function getRandomFields (
   fields: ReadonlyArray<FieldDefinitionNode>,
@@ -159,21 +170,22 @@ function getRandomFields (
   schema: GraphQLSchema,
   depth: number
 ) : ReadonlyArray<FieldDefinitionNode> {
+  const results = []
+
   // filter Interfaces and Unions (for now):
   const cleanFields = fields
     .filter(field => !isInterfaceField(field, schema))
     .filter(field => !isUnionField(field, schema))
 
   if (cleanFields.length === 0) {
-    return []
+    return results
   }
 
-  const results = []
   const nested = cleanFields.filter(field => isNestedField(field, schema))
   const flat = cleanFields.filter(field => !isNestedField(field, schema))
   const nextIsLeaf = depth + 1 === config.maxDepth
   const pickNested = Math.random() <= config.depthProbability
-  // console.log(` depth=${depth}, maxDepth=${config.maxDepth}, nextIsLeaf=${nextIsLeaf}, pickOneNested=${pickOneNested} cleanFields= ${cleanFields.map(f => f.name.value).join(', ')}`)
+  // console.log(` depth=${depth}, maxDepth=${config.maxDepth}, nextIsLeaf=${nextIsLeaf}, pickOneNested=${pickNested} cleanFields= ${cleanFields.map(f => f.name.value).join(', ')}`)
 
   // if depth probability is high, definitely chose one nested field if one exists:
   if (pickNested && nested.length > 0 && !nextIsLeaf) {
@@ -187,15 +199,6 @@ function getRandomFields (
       }
     })
   }
-
-  // pick further nested fields based on the breadth probability:
-  // if (!nextIsLeaf) {
-  //   nested.forEach(field => {
-  //     if (Math.random() <= config.breadthProbability) {
-  //       results.push(field)
-  //     }
-  //   })
-  // }
 
   // pick flat fields based on the breadth probability:
   flat.forEach(field => {
@@ -211,10 +214,6 @@ function getRandomFields (
     } else if (flat.length > 0) {
       results.push(flat[Math.floor(Math.random() * flat.length)])
     }
-  }
-
-  if (results.length === 0) {
-    throw Error(`Could not select field from: ${cleanFields.map(f => f.name.value).join(', ')}`)
   }
 
   return results
@@ -263,29 +262,31 @@ function getSelectionSetAndVars(
   depth: number = 0
 ) : {
   selectionSet: SelectionSetNode,
-  variableDefinitions: VariableDefinitionNode[]
+  variableDefinitionsMap: {
+    [key: string] : VariableDefinitionNode
+  }
  } {
   // abort at leaf nodes:
   if (depth === config.maxDepth) {
     return {
-      selectionSet: null,
-      variableDefinitions: []
+      selectionSet: undefined,
+      variableDefinitionsMap: {}
     }
   }
 
   let selections : SelectionNode[] = []
-  let variableDefinitions : VariableDefinitionNode[] = []
+  let variableDefinitionsMap : {[key: string] : VariableDefinitionNode} = {}
 
   if (node.kind === 'ObjectTypeDefinition') {
     let fields = getRandomFields(node.fields, config, schema, depth)
 
-    selections = fields.map((field) : FieldNode => {
+    fields.forEach(field => {
       const nextNode = schema.getType(getTypeName(field.type)).astNode
-      let selectionSetMap = null
+      let selectionSetMap : SelectionSetNode = null
       if (typeof nextNode !== 'undefined') {
         const nextSelectionSet = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
         selectionSetMap = nextSelectionSet.selectionSet
-        variableDefinitions = [...variableDefinitions, ...nextSelectionSet.variableDefinitions]
+        variableDefinitionsMap = {...variableDefinitionsMap, ...nextSelectionSet.variableDefinitionsMap}
       }
 
       const argsAndVars = getArgsAndVars(
@@ -294,14 +295,19 @@ function getSelectionSetAndVars(
         field.name.value,
         config
       )
-      variableDefinitions = [...variableDefinitions, ...argsAndVars.vars]
+      argsAndVars.vars.forEach(varDef => {
+        variableDefinitionsMap[varDef.variable.name.value] = varDef
+      })
 
-      return {
+      const selectionSet = selectionSetMap && selectionSetMap.selections.length > 0
+        ? selectionSetMap
+        : undefined
+      selections.push({
         kind: 'Field',
         name: getName(field.name.value),
-        selectionSet: selectionSetMap,
+        selectionSet,
         arguments: argsAndVars.args
-      }
+      })
     })
   }
 
@@ -310,7 +316,7 @@ function getSelectionSetAndVars(
       kind: 'SelectionSet',
       selections
     },
-    variableDefinitions
+    variableDefinitionsMap
   }
 }
 
