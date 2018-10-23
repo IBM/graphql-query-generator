@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import { buildSchema, print } from 'graphql'
-import { Configuration, buildRandomQuery, buildRandomMutation } from '../index'
+import { Configuration, buildRandomQuery } from '../src/index'
 
 // globals:
 let schema

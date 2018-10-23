@@ -1,5 +1,4 @@
 import {
-  buildSchema,
   OperationDefinitionNode,
   Location,
   DocumentNode,
@@ -10,13 +9,11 @@ import {
   SelectionNode,
   FieldNode,
   TypeNode,
-  print,
   ArgumentNode,
   NameNode,
   VariableDefinitionNode,
   InputValueDefinitionNode
 } from 'graphql'
-import * as fs from 'fs'
 
 export type Configuration = {
   depthProbability?: number,
