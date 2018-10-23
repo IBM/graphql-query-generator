@@ -174,22 +174,31 @@ function getRandomFields (
   const results = []
   const nested = cleanFields.filter(isNestedField)
   const flat = cleanFields.filter(field => !isNestedField(field))
+  const nextIsLeaf = depth + 1 === config.maxDepth
+  const pickNested = Math.random() <= config.depthProbability
+  // console.log(` depth=${depth}, maxDepth=${config.maxDepth}, nextIsLeaf=${nextIsLeaf}, pickOneNested=${pickOneNested} cleanFields= ${cleanFields.map(f => f.name.value).join(', ')}`)
 
-  // if depth probability is high, definitely chose one nested field:
-  if (Math.random() <= config.depthProbability && nested.length > 0 && depth <= config.depthProbability + 1) {
+  // if depth probability is high, definitely chose one nested field if one exists:
+  if (pickNested && nested.length > 0 && !nextIsLeaf) {
     let nestedIndex = Math.floor(Math.random() * nested.length)
     results.push(nested[nestedIndex])
     nested.splice(nestedIndex, 1)
-  }
 
-  // pick further nested fields based on the breadth probability:
-  if (depth <= config.depthProbability + 1) {
     nested.forEach(field => {
       if (Math.random() <= config.breadthProbability) {
         results.push(field)
       }
-    })  
+    })
   }
+
+  // pick further nested fields based on the breadth probability:
+  // if (!nextIsLeaf) {
+  //   nested.forEach(field => {
+  //     if (Math.random() <= config.breadthProbability) {
+  //       results.push(field)
+  //     }
+  //   })
+  // }
 
   // pick flat fields based on the breadth probability:
   flat.forEach(field => {
@@ -200,7 +209,15 @@ function getRandomFields (
 
   // ensure to pick at least one field:
   if (results.length === 0) {
-    results.push(cleanFields[Math.floor(Math.random() * cleanFields.length)])
+    if (!nextIsLeaf && cleanFields.length > 0) {
+      results.push(cleanFields[Math.floor(Math.random() * cleanFields.length)])
+    } else if (flat.length > 0) {
+      results.push(flat[Math.floor(Math.random() * flat.length)])
+    }
+  }
+
+  if (results.length === 0) {
+    throw Error(`Could not select field from: ${cleanFields.map(f => f.name.value).join(', ')}`)
   }
 
   return results
@@ -251,8 +268,8 @@ function getSelectionSetAndVars(
   selectionSet: SelectionSetNode,
   variableDefinitions: VariableDefinitionNode[]
  } {
-  // abort eventually:
-  if (depth >= config.maxDepth) {
+  // abort at leaf nodes:
+  if (depth === config.maxDepth) {
     return {
       selectionSet: null,
       variableDefinitions: []
@@ -314,7 +331,6 @@ export function buildRandomQuery (
   config: Configuration = {}
 ) {
   const finalConfig = {...DEFAULT_CONFIG, ...config}
-  console.log(finalConfig)
   const definitions = [getQueryOperationDefinition(schema, finalConfig)]
   return getDocumentDefinition(definitions)
 }
@@ -324,14 +340,14 @@ const schemaDef = fs.readFileSync('./src/schema.graphql').toString()
 // const schemaDef = fs.readFileSync('./src/github.graphql').toString()
 const schema = buildSchema(schemaDef)
 const config : Configuration = {
-  // breadthProbability: 0.01,
-  // depthProbability: 0.09,
-  // maxDepth: 2,
-  // argumentsToIgnore: [
-  //   'before',
-  //   'after',
-  //   'last'
-  // ],
+  breadthProbability: 0.4,
+  depthProbability: 0.4,
+  maxDepth: 10,
+  argumentsToIgnore: [
+    'before',
+    'after',
+    'last'
+  ],
   argumentsToConsider: [
     'first'
   ],

@@ -10,7 +10,8 @@ type User implements Node {
 }
 
 type DirectorConnection {
-  ceos: [User]
+  ceos: [User],
+  cursor: ID
 }
 
 type Company implements Node {

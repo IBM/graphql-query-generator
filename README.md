@@ -10,7 +10,7 @@ This library exposes two functions:
 ### Configuration
 Functions of this library accept a configuration object with the following properties:
 
-* `depthProbability` (type: `number`, default: `0.5`): The probability (from `0` to `1`) that, if existent, at least one field that has itself subfields is selected at every level of the generated query.
+* `depthProbability` (type: `number`, default: `0.5`): The probability (from `0` to `1`) that, if existent, fields that themselves have subfields are selected at every level of the generated query. The number of so selected fields depends on the `breadthProbability`.
 * `breadthProbability` (type: `number`, default: `0.5`): The probability (from `0` to `1`) that a field (nested or flat) is selected at every level of the generated query.
 * `maxDepth` (type: `number`, default: `5`): The maximum depths of the query / mutation to generate. This library ensures that leave nodes do not requir children fields to be selected.
 * `ignoreOptionalArguments` (type: `boolean`, default: `true`): If set to `true`, non-mandatory arguments will not be included in the generated query / mutation.
