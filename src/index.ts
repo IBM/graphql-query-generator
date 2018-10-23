@@ -19,12 +19,21 @@ import {
 import * as fs from 'fs'
 
 export type Configuration = {
-  depthProbability: number,
-  breadthProbability: number,
-  maxDepth: number,
-  ignoreOptionalArguments: boolean,
+  depthProbability?: number,
+  breadthProbability?: number,
+  maxDepth?: number,
+  ignoreOptionalArguments?: boolean,
   argumentsToIgnore?: string[],
   argumentsToConsider?: string[]
+}
+
+const DEFAULT_CONFIG : Configuration = {
+  depthProbability: 0.5,
+  breadthProbability: 0.5,
+  maxDepth: 5,
+  ignoreOptionalArguments: true,
+  argumentsToIgnore: [],
+  argumentsToConsider: []
 }
 
 // default loc: {start: 0, end: 0}
@@ -115,18 +124,32 @@ function isInterfaceField (field: FieldDefinitionNode, schema: GraphQLSchema) : 
 }
 
 function considerArgument (arg: InputValueDefinitionNode, config: Configuration) : boolean {
-  if (!Array.isArray(config.argumentsToIgnore) || config.argumentsToIgnore.length === 0) {
+  const isArgumentToIgnore = config.argumentsToIgnore.includes(arg.name.value)
+  const isArgumentToConsider = config.argumentsToConsider.includes(arg.name.value)
+  const isMand = isMandatory(arg.type)
+  const isOptional = !isMand
+
+  // checks for consistency:
+  if (isMand && isArgumentToIgnore) {
+    throw new Error(`Cannot ignore non-null argument "${arg.name.value}"`)
+  }
+
+  if (isArgumentToIgnore && isArgumentToConsider) {
+    throw new Error(`Cannot ignore AND consider argument "${arg.name.value}"`)
+  }
+
+  // return value based on options:
+  if (isArgumentToConsider) {
     return true
   }
-  const isArgumentToIgnore = config.argumentsToIgnore.includes(arg.name.value)
-  const isOptional = !isMandatory(arg.type)
-  const isForced = config.argumentsToConsider.includes(arg.name.value)
-  return (
-    !isArgumentToIgnore &&
-    !(isOptional && config.ignoreOptionalArguments)
-  ) || isForced
 
+  if (isArgumentToIgnore) {
+    return false
+  }
 
+  if (isOptional && config.ignoreOptionalArguments) {
+    return false
+  }
 }
 
 function isUnionField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
@@ -272,12 +295,14 @@ function getSelectionSetAndVars(
 }
 
 export function buildRandomMutation (schema: GraphQLSchema, config: Configuration) {
-  const definitions = [getMutationOperationDefinition(schema, config)]
+  const finalConfig = {config, ...DEFAULT_CONFIG}
+  const definitions = [getMutationOperationDefinition(schema, finalConfig)]
   return getDocumentDefinition(definitions)
 }
 
 export function buildRandomQuery (schema: GraphQLSchema, config: Configuration) {
-  const definitions = [getQueryOperationDefinition(schema, config)]
+  const finalConfig = {config, ...DEFAULT_CONFIG}
+  const definitions = [getQueryOperationDefinition(schema, finalConfig)]
   return getDocumentDefinition(definitions)
 }
 
