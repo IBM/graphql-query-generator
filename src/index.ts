@@ -1,6 +1,5 @@
 import {
   buildSchema,
-  parse,
   OperationDefinitionNode,
   Location,
   DocumentNode,
@@ -18,12 +17,14 @@ import {
   InputValueDefinitionNode
 } from 'graphql'
 import * as fs from 'fs'
-import { requiredSubselectionMessage } from 'graphql/validation/rules/ScalarLeafs';
-type Configuration = {
+
+export type Configuration = {
   depthProbability: number,
   breadthProbability: number,
   maxDepth: number,
-  argumentsToIgnore?: string[]
+  ignoreOptionalArguments: boolean,
+  argumentsToIgnore?: string[],
+  argumentsToConsider?: string[]
 }
 
 // default loc: {start: 0, end: 0}
@@ -37,9 +38,12 @@ function getDocumentDefinition (definitions) : DocumentNode {
   }
 }
 
-function getQueryOperationDefinition (schema: GraphQLSchema, config: Configuration) : OperationDefinitionNode {
+function getQueryOperationDefinition (
+  schema: GraphQLSchema,
+  config: Configuration
+) : OperationDefinitionNode {
   const node = schema.getQueryType().astNode
-  const {selectionSet, variableDefinitions} = getSelectionSet(schema, node, config)
+  const {selectionSet, variableDefinitions} = getSelectionSetAndVars(schema, node, config)
   
   // throw error if query would be empty:
   if (selectionSet.selections.length === 0) {
@@ -51,7 +55,30 @@ function getQueryOperationDefinition (schema: GraphQLSchema, config: Configurati
     operation: 'query',
     selectionSet,
     variableDefinitions,
-    loc
+    loc,
+    name: getName('RandomQuery')
+  }
+}
+
+function getMutationOperationDefinition(
+  schema: GraphQLSchema,
+  config: Configuration
+) : OperationDefinitionNode {
+  const node = schema.getMutationType().astNode
+  const {selectionSet, variableDefinitions} = getSelectionSetAndVars(schema, node, config)
+  
+  // throw error if mutation would be empty:
+  if (selectionSet.selections.length === 0) {
+    throw new Error(`Could not create mutation - no selection was possible at the root level`)
+  }
+
+  return {
+    kind: 'OperationDefinition',
+    operation: 'mutation',
+    selectionSet,
+    variableDefinitions,
+    loc,
+    name: getName('RandomMutation')
   }
 }
 
@@ -65,6 +92,10 @@ function getTypeName (type: TypeNode) : string {
   } else {
     throw new Error(`Cannot get name of type: ${type}`)
   }
+}
+
+function isMandatory (type: TypeNode) : boolean {
+  return type.kind === 'NonNullType'
 }
 
 function getName (name: string) : NameNode {
@@ -87,7 +118,15 @@ function considerArgument (arg: InputValueDefinitionNode, config: Configuration)
   if (!Array.isArray(config.argumentsToIgnore) || config.argumentsToIgnore.length === 0) {
     return true
   }
-  return !config.argumentsToIgnore.includes(arg.name.value)
+  const isArgumentToIgnore = config.argumentsToIgnore.includes(arg.name.value)
+  const isOptional = !isMandatory(arg.type)
+  const isForced = config.argumentsToConsider.includes(arg.name.value)
+  return (
+    !isArgumentToIgnore &&
+    !(isOptional && config.ignoreOptionalArguments)
+  ) || isForced
+
+
 }
 
 function isUnionField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
@@ -144,7 +183,42 @@ function getRandomFields (
   return results
 }
 
-function getSelectionSet(
+function getArgsAndVars (
+  allArgs: ReadonlyArray<InputValueDefinitionNode>,
+  nodeName: string,
+  fieldName: string
+) : {
+  args: ArgumentNode[],
+  vars: VariableDefinitionNode[]
+} {
+  const args : ArgumentNode[] = []
+  const vars : VariableDefinitionNode[] =[]
+  allArgs
+    .filter(arg => considerArgument(arg, config))
+    .forEach(arg => {
+      const varName = `${nodeName}__${fieldName}__${arg.name.value}`
+      args.push({
+        kind: 'Argument',
+        loc,
+        name: getName(arg.name.value),
+        value: {
+          kind: 'Variable',
+          name: getName(varName)
+        }
+      })
+      vars.push({
+        kind: 'VariableDefinition',
+        type: arg.type,
+        variable: {
+          kind: 'Variable',
+          name: getName(varName)
+        }
+      })
+    })
+  return { args, vars }
+}
+
+function getSelectionSetAndVars(
   schema: GraphQLSchema,
   node: DefinitionNode,
   config: Configuration,
@@ -153,16 +227,16 @@ function getSelectionSet(
   selectionSet: SelectionSetNode,
   variableDefinitions: VariableDefinitionNode[]
  } {
-  let selections : SelectionNode[] = []
-  let variableDefinitions : VariableDefinitionNode[] = []
-
   // abort eventually:
   if (depth >= config.maxDepth) {
     return {
       selectionSet: null,
-      variableDefinitions
+      variableDefinitions: []
     }
   }
+
+  let selections : SelectionNode[] = []
+  let variableDefinitions : VariableDefinitionNode[] = []
 
   if (node.kind === 'ObjectTypeDefinition') {
     let fields = getRandomFields(node.fields, config, schema, depth)
@@ -171,38 +245,19 @@ function getSelectionSet(
       const nextNode = schema.getType(getTypeName(field.type)).astNode
       let selectionSetMap = null
       if (typeof nextNode !== 'undefined') {
-        const nextSelectionSet = getSelectionSet(schema, nextNode, config, depth + 1)
+        const nextSelectionSet = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
         selectionSetMap = nextSelectionSet.selectionSet
         variableDefinitions = [...variableDefinitions, ...nextSelectionSet.variableDefinitions]
       }
-      const argumentsList : ArgumentNode[] = []
-      field.arguments
-        .filter(arg => considerArgument(arg, config))
-        .forEach((arg) => {
-        const varName = `${node.name.value}__${field.name.value}__${arg.name.value}`
-        argumentsList.push({
-          kind: 'Argument',
-          loc,
-          name: getName(arg.name.value),
-          value: {
-            kind: 'Variable',
-            name: getName(varName)
-          }
-        })
-        variableDefinitions.push({
-          kind: 'VariableDefinition',
-          type: arg.type,
-          variable: {
-            kind: 'Variable',
-            name: getName(varName)
-          }
-        })
-      })
+
+      const argsAndVars = getArgsAndVars(field.arguments, node.name.value, field.name.value)
+      variableDefinitions = [...variableDefinitions, ...argsAndVars.vars]
+
       return {
         kind: 'Field',
         name: getName(field.name.value),
         selectionSet: selectionSetMap,
-        arguments: argumentsList
+        arguments: argsAndVars.args
       }
     })
   }
@@ -216,25 +271,35 @@ function getSelectionSet(
   }
 }
 
-function buildQuery (schema: GraphQLSchema, config: Configuration) {
-  const definitions = [getQueryOperationDefinition(schema, config)]
-  const document = getDocumentDefinition(definitions)
+export function buildRandomMutation (schema: GraphQLSchema, config: Configuration) {
+  const definitions = [getMutationOperationDefinition(schema, config)]
+  return getDocumentDefinition(definitions)
+}
 
-  console.log(print(document))
+export function buildRandomQuery (schema: GraphQLSchema, config: Configuration) {
+  const definitions = [getQueryOperationDefinition(schema, config)]
+  return getDocumentDefinition(definitions)
 }
 
 // kick things of:
-// const schemaDef = fs.readFileSync('./src/schema.graphql').toString()
-const schemaDef = fs.readFileSync('./src/github.graphql').toString()
+const schemaDef = fs.readFileSync('./src/schema.graphql').toString()
+// const schemaDef = fs.readFileSync('./src/github.graphql').toString()
 const schema = buildSchema(schemaDef)
 const config : Configuration = {
-  breadthProbability: 0.2,
-  depthProbability: 0.2,
-  maxDepth: 2,
+  breadthProbability: 0.01,
+  depthProbability: 0.9,
+  maxDepth: 10,
   argumentsToIgnore: [
     'before',
     'after',
     'last'
-  ]
+  ],
+  argumentsToConsider: [
+    'first'
+  ],
+  ignoreOptionalArguments: true
 }
-buildQuery(schema, config)
+// const mutationAst = buildRandomMutation(schema, config)
+// console.log(print(mutationAst))
+const queryAst = buildRandomQuery(schema, config)
+console.log(print(queryAst))

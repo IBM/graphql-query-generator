@@ -6,7 +6,7 @@ type User implements Node {
   name: String
   company(id: String): Company
   employerCompany: Company
-  pastEmployers(max: Int = 1): [Company]
+  pastEmployers(max: Int! = 1): [Company]
 }
 
 type DirectorConnection {
@@ -18,14 +18,14 @@ type Company implements Node {
   legalForm: String
   ceo: User
   id: String
-  employees(limit: Int = 1): [User]
-  directors(limit: Int = 1): DirectorConnection
+  employees(limit: Int! = 1): [User]
+  directors(limit: Int! = 1): DirectorConnection
 }
 
 type Query {
-  # user(username: String): User
-  # users(limit: Int = 1, first: Int = 1, last: Int = 1): [User]
-  company(id: String, max: Int = 1): Company
+  user(username: String!): User
+  users(limit: Int! = 1, first: Int = 1, last: Int = 1): [User]
+  company(id: String!, max: Int! = 1): Company
   node(id: ID): Node
 }
 
