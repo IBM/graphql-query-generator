@@ -209,7 +209,8 @@ function getRandomFields (
 function getArgsAndVars (
   allArgs: ReadonlyArray<InputValueDefinitionNode>,
   nodeName: string,
-  fieldName: string
+  fieldName: string,
+  config: Configuration
 ) : {
   args: ArgumentNode[],
   vars: VariableDefinitionNode[]
@@ -273,7 +274,12 @@ function getSelectionSetAndVars(
         variableDefinitions = [...variableDefinitions, ...nextSelectionSet.variableDefinitions]
       }
 
-      const argsAndVars = getArgsAndVars(field.arguments, node.name.value, field.name.value)
+      const argsAndVars = getArgsAndVars(
+        field.arguments,
+        node.name.value,
+        field.name.value,
+        config
+      )
       variableDefinitions = [...variableDefinitions, ...argsAndVars.vars]
 
       return {
@@ -294,14 +300,21 @@ function getSelectionSetAndVars(
   }
 }
 
-export function buildRandomMutation (schema: GraphQLSchema, config: Configuration) {
+export function buildRandomMutation (
+  schema: GraphQLSchema,
+  config: Configuration = {}
+) {
   const finalConfig = {config, ...DEFAULT_CONFIG}
   const definitions = [getMutationOperationDefinition(schema, finalConfig)]
   return getDocumentDefinition(definitions)
 }
 
-export function buildRandomQuery (schema: GraphQLSchema, config: Configuration) {
-  const finalConfig = {config, ...DEFAULT_CONFIG}
+export function buildRandomQuery (
+  schema: GraphQLSchema,
+  config: Configuration = {}
+) {
+  const finalConfig = {...DEFAULT_CONFIG, ...config}
+  console.log(finalConfig)
   const definitions = [getQueryOperationDefinition(schema, finalConfig)]
   return getDocumentDefinition(definitions)
 }
@@ -311,14 +324,14 @@ const schemaDef = fs.readFileSync('./src/schema.graphql').toString()
 // const schemaDef = fs.readFileSync('./src/github.graphql').toString()
 const schema = buildSchema(schemaDef)
 const config : Configuration = {
-  breadthProbability: 0.01,
-  depthProbability: 0.9,
-  maxDepth: 10,
-  argumentsToIgnore: [
-    'before',
-    'after',
-    'last'
-  ],
+  // breadthProbability: 0.01,
+  // depthProbability: 0.09,
+  // maxDepth: 2,
+  // argumentsToIgnore: [
+  //   'before',
+  //   'after',
+  //   'last'
+  // ],
   argumentsToConsider: [
     'first'
   ],
