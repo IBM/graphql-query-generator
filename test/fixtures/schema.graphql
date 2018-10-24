@@ -2,6 +2,12 @@ interface Node {
   id: ID
 }
 
+enum Choice {
+  ONE,
+  TWO,
+  THREE
+}
+
 type User implements Node {
   name: String
   company(id: String): Company
@@ -21,11 +27,12 @@ type Company implements Node {
   ceo: User
   id: ID
   employees(limit: Int! = 1): [User]
-  directors(limit: Int! = 1): DirectorConnection
+  directors(limit: Int! = 1): DirectorConnection,
+  choice: Choice
 }
 
 type Query {
-  user(username: String!): User
+  user(username: String!, choice: Choice!): User
   users(limit: Int! = 1, first: Int = 1, last: Int = 1): [User]
   company(id: String!, max: Int! = 1): Company
   node(id: ID): Node

@@ -1,4 +1,4 @@
-import { DocumentNode, OperationDefinitionNode } from "graphql";
+import { DocumentNode, OperationDefinitionNode, GraphQLSchema, VariableDefinitionNode, getNamedType, GraphQLType, TypeNode } from "graphql";
 
 type Primitive = string | boolean | number | Date
 
@@ -37,9 +37,35 @@ function getProvider (providerMap: ProviderMap, varName: string) {
   return result
 }
 
+function getTypeName (type: TypeNode) : string {
+  if (type.kind === 'ListType' || type.kind === 'NonNullType') {
+    return getTypeName(type.type)
+  }
+  return type.name.value
+}
+
+function isEnumVar (varDef: VariableDefinitionNode, schema: GraphQLSchema) : boolean {
+  const type = schema.getType(getTypeName(varDef.type))
+  const typeDef = type.astNode
+  if (typeof typeDef !== 'undefined' && typeDef.kind === 'EnumTypeDefinition') {
+    return true
+  }
+  return false
+}
+
+function getRandomEnum (varDef: VariableDefinitionNode, schema: GraphQLSchema) {
+  const type = schema.getType(getTypeName(varDef.type))
+  const typeDef = type.astNode
+  if (typeof typeDef !== 'undefined' && typeDef.kind === 'EnumTypeDefinition') {
+    let value = typeDef.values[Math.floor(Math.random() * typeDef.values.length)]
+    return value.name.value
+  }
+}
+
 export function provideVariables (
   query: DocumentNode,
-  providerMap: ProviderMap
+  providerMap: ProviderMap,
+  schema: GraphQLSchema
 ) : {
   [variableName: string] : Primitive | Object | Array<any>
 } {
@@ -58,7 +84,9 @@ export function provideVariables (
     const provider = getProvider(providerMap, varName)
     let varValue = null
 
-    if (!provider) {
+    if (isEnumVar(varDef, schema)) {
+      varValue = getRandomEnum(varDef, schema)
+    } else if (!provider) {
       throw new Error(`No provider defined for variable "${varName}"`)
     } else if (typeof provider === 'function') {
       varValue = provider()
