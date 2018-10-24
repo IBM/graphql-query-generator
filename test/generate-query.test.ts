@@ -1,12 +1,12 @@
 import * as fs from 'fs'
 import { buildSchema, print, validate } from 'graphql'
-import { Configuration, buildRandomQuery } from '../src/index'
+import { Configuration, generateRandomQuery } from '../src/index'
 
 // globals:
-const schemaDef = fs.readFileSync('./src/schema.graphql').toString()
+const schemaDef = fs.readFileSync('./test/fixtures/schema.graphql').toString()
 const schema = buildSchema(schemaDef)
 
-const schemaDefGitHub = fs.readFileSync('./src/github.graphql').toString()
+const schemaDefGitHub = fs.readFileSync('./test/fixtures/github.graphql').toString()
 const schemaGitHub = buildSchema(schemaDefGitHub)
 
 test(`Obtain random query from example schema`, () => {
@@ -15,7 +15,7 @@ test(`Obtain random query from example schema`, () => {
     depthProbability: 0.1
   }
 
-  const queryAst = buildRandomQuery(schema, config)
+  const queryAst = generateRandomQuery(schema, config)
   expect(queryAst).toBeDefined()
   expect(print(queryAst) === '').toEqual(false)
   const errors = validate(schema, queryAst)
@@ -31,7 +31,7 @@ test(`Obtain random query from GitHub schema`, () => {
     argumentsToConsider: ['first']
   }
 
-  const queryAst = buildRandomQuery(schemaGitHub, config)
+  const queryAst = generateRandomQuery(schemaGitHub, config)
   console.log(print(queryAst))
   // console.log(JSON.stringify(queryAst, null, 2))
 

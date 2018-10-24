@@ -1,6 +1,6 @@
 import * as fs from 'fs'
-import { buildSchema, print, validate } from 'graphql'
-import { Configuration, buildRandomQuery } from '../src/index'
+import { buildSchema } from 'graphql'
+import { generateRandomQuery } from '../src/index'
 import { provideVariables } from '../src/provide-variables'
 
 function getRandomMarketplaceSlug () {
@@ -35,10 +35,6 @@ function getRandomLicenseKey () {
   return 'MIT'
 }
 
-function getRandomSearchType () {
-
-}
-
 const GITHUB_PROVIDERS = {
   '*__*__first': 10,
   '*__codeOfConduct__key': 'citizen_code_of_conduct', // or 'contributor_covenant'
@@ -51,11 +47,11 @@ const GITHUB_PROVIDERS = {
 }
 
 // globals:
-const schemaDefGitHub = fs.readFileSync('./src/github.graphql').toString()
+const schemaDefGitHub = fs.readFileSync('./test/fixtures/github.graphql').toString()
 const schemaGitHub = buildSchema(schemaDefGitHub)
 
 test('Provide Variables', () => {
-  const queryAst = buildRandomQuery(schemaGitHub)
+  const queryAst = generateRandomQuery(schemaGitHub)
   const variables = provideVariables(queryAst, GITHUB_PROVIDERS)
   console.log(variables)
 })
