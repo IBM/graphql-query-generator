@@ -1,5 +1,27 @@
 # GraphQL Query Generator
-Generate randomized GraphQL queries from a given schema. All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables).
+Generate randomized GraphQL queries from a given schema. All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). For example:
+
+```javascript
+import { generateRandomQuery } from 'this-library'
+
+const configuration = {
+  depthProbability: 0.1,
+  breadthProbability: 0.2
+}
+const query = generateRandomQuery(gitHubSchema, configuration)
+/**
+ * Printing the query using graphql.print(query):
+ * 
+ * query RandomQuery($Query__marketplaceCategory__slug: String!) {
+ *   marketplaceCategory(slug: $Query__marketplaceCategory__slug) {
+ *     howItWorks
+ *     name
+ *     secondaryListingCount
+ *   }
+ * }
+ * 
+ */
+```
 
 ## Generating random queries
 This library exposes two functions for generating random GraphQL queries:
