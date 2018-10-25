@@ -76,3 +76,31 @@ test('Provide Variables for GitHub', () => {
   console.log(print(queryAst))
   console.log(JSON.stringify(variables, null, 2))
 })
+
+test('Provide variable value based on existing values', () => {
+  const schemaStr = `
+  type Query {
+    user (name: String!): String
+    company (name: String!): String
+  }
+  schema { query: Query }
+  `
+  const providers = {
+    '*__user__name': (vars) => {
+      if (vars.Query__company__name === 'first') {
+        return 'second'
+      }
+      return 'first'
+    },
+    '*__company__name': (vars) => {
+      if (vars.Query__user__name === 'first') {
+        return 'second'
+      }
+      return 'first'
+    }
+  }
+  const schema = buildSchema(schemaStr)
+  const queryAst = generateRandomQuery(schema, {depthProbability: 1, breadthProbability: 1})
+  const variables = provideVariables(queryAst, providers, schema)
+  expect(variables.Query__company__name !== variables.Query__user__name).toBeTruthy()
+})

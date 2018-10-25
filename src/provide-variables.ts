@@ -89,7 +89,7 @@ export function provideVariables (
     } else if (!provider) {
       throw new Error(`No provider defined for variable "${varName}"`)
     } else if (typeof provider === 'function') {
-      varValue = provider()
+      varValue = provider(variables)
     } else {
       varValue = provider
     }
