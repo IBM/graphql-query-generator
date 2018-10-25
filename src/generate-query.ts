@@ -7,12 +7,12 @@ import {
   GraphQLSchema,
   FieldDefinitionNode,
   SelectionNode,
-  FieldNode,
   TypeNode,
   ArgumentNode,
   NameNode,
   VariableDefinitionNode,
-  InputValueDefinitionNode
+  InputValueDefinitionNode,
+  Kind
 } from 'graphql'
 
 export type Configuration = {
@@ -44,7 +44,7 @@ const loc : Location = {
 
 function getDocumentDefinition (definitions) : DocumentNode {
   return {
-    kind: 'Document',
+    kind: Kind.DOCUMENT,
     definitions,
     loc
   }
@@ -63,7 +63,7 @@ function getQueryOperationDefinition (
   }
 
   return {
-    kind: 'OperationDefinition',
+    kind: Kind.OPERATION_DEFINITION,
     operation: 'query',
     selectionSet,
     variableDefinitions: Object.values(variableDefinitionsMap),
@@ -85,7 +85,7 @@ function getMutationOperationDefinition(
   }
 
   return {
-    kind: 'OperationDefinition',
+    kind: Kind.OPERATION_DEFINITION,
     operation: 'mutation',
     selectionSet,
     variableDefinitions: Object.values(variableDefinitionsMap),
@@ -94,12 +94,12 @@ function getMutationOperationDefinition(
   }
 }
 
-function getTypeName (type: TypeNode) : string {
-  if (type.kind === 'NamedType') {
+export function getTypeName (type: TypeNode) : string {
+  if (type.kind === Kind.NAMED_TYPE) {
     return type.name.value
-  } else if (type.kind === 'ListType') {
+  } else if (type.kind === Kind.LIST_TYPE) {
     return getTypeName(type.type)
-  } else if (type.kind === 'NonNullType') {
+  } else if (type.kind === Kind.NON_NULL_TYPE) {
     return getTypeName(type.type)
   } else {
     throw new Error(`Cannot get name of type: ${type}`)
@@ -107,12 +107,12 @@ function getTypeName (type: TypeNode) : string {
 }
 
 function isMandatoryType (type: TypeNode) : boolean {
-  return type.kind === 'NonNullType'
+  return type.kind === Kind.NON_NULL_TYPE
 }
 
 function getName (name: string) : NameNode {
   return {
-    kind: 'Name',
+    kind: Kind.NAME,
     value: name
   }
 }
@@ -123,7 +123,7 @@ function isNestedField (field: FieldDefinitionNode, schema: GraphQLSchema) : boo
 
 function isInterfaceField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
-  return typeof ast !== 'undefined' && ast.kind === 'InterfaceTypeDefinition'
+  return typeof ast !== 'undefined' && ast.kind === Kind.INTERFACE_TYPE_DEFINITION
 }
 
 function considerArgument (arg: InputValueDefinitionNode, config: Configuration) : boolean {
@@ -161,7 +161,7 @@ function considerArgument (arg: InputValueDefinitionNode, config: Configuration)
 
 function isUnionField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
-  return typeof ast !== 'undefined' && ast.kind === 'UnionTypeDefinition'
+  return typeof ast !== 'undefined' && ast.kind === Kind.UNION_TYPE_DEFINITION
 }
 
 function getRandomFields (
@@ -237,19 +237,19 @@ function getArgsAndVars (
     .forEach(arg => {
       const varName = `${nodeName}__${fieldName}__${arg.name.value}`
       args.push({
-        kind: 'Argument',
+        kind: Kind.ARGUMENT,
         loc,
         name: getName(arg.name.value),
         value: {
-          kind: 'Variable',
+          kind: Kind.VARIABLE,
           name: getName(varName)
         }
       })
       vars.push({
-        kind: 'VariableDefinition',
+        kind: Kind.VARIABLE_DEFINITION,
         type: arg.type,
         variable: {
-          kind: 'Variable',
+          kind: Kind.VARIABLE,
           name: getName(varName)
         }
       })
@@ -279,7 +279,7 @@ function getSelectionSetAndVars(
   let selections : SelectionNode[] = []
   let variableDefinitionsMap : {[key: string] : VariableDefinitionNode} = {}
 
-  if (node.kind === 'ObjectTypeDefinition') {
+  if (node.kind === Kind.OBJECT_TYPE_DEFINITION) {
     let fields = getRandomFields(node.fields, config, schema, depth)
 
     fields.forEach(field => {
@@ -305,7 +305,7 @@ function getSelectionSetAndVars(
         ? selectionSetMap
         : undefined
       selections.push({
-        kind: 'Field',
+        kind: Kind.FIELD,
         name: getName(field.name.value),
         selectionSet,
         arguments: argsAndVars.args
@@ -315,7 +315,7 @@ function getSelectionSetAndVars(
 
   return {
     selectionSet: {
-      kind: 'SelectionSet',
+      kind: Kind.SELECTION_SET,
       selections
     },
     variableDefinitionsMap

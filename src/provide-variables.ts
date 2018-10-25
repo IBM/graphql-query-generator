@@ -3,8 +3,10 @@ import {
   OperationDefinitionNode,
   GraphQLSchema,
   VariableDefinitionNode,
-  TypeNode
+  TypeNode,
+  Kind
 } from 'graphql'
+import { getTypeName } from './generate-query';
 
 type Primitive = string | boolean | number | Date
 
@@ -43,17 +45,10 @@ function getProvider (providerMap: ProviderMap, varName: string) {
   return result
 }
 
-function getTypeName (type: TypeNode) : string {
-  if (type.kind === 'ListType' || type.kind === 'NonNullType') {
-    return getTypeName(type.type)
-  }
-  return type.name.value
-}
-
 function isEnumVar (varDef: VariableDefinitionNode, schema: GraphQLSchema) : boolean {
   const type = schema.getType(getTypeName(varDef.type))
   const typeDef = type.astNode
-  if (typeof typeDef !== 'undefined' && typeDef.kind === 'EnumTypeDefinition') {
+  if (typeof typeDef !== 'undefined' && typeDef.kind === Kind.ENUM_TYPE_DEFINITION) {
     return true
   }
   return false
@@ -62,7 +57,7 @@ function isEnumVar (varDef: VariableDefinitionNode, schema: GraphQLSchema) : boo
 function getRandomEnum (varDef: VariableDefinitionNode, schema: GraphQLSchema) {
   const type = schema.getType(getTypeName(varDef.type))
   const typeDef = type.astNode
-  if (typeof typeDef !== 'undefined' && typeDef.kind === 'EnumTypeDefinition') {
+  if (typeof typeDef !== 'undefined' && typeDef.kind === Kind.ENUM_TYPE_DEFINITION) {
     let value = typeDef.values[Math.floor(Math.random() * typeDef.values.length)]
     return value.name.value
   }
@@ -76,7 +71,7 @@ export function provideVariables (
   [variableName: string] : Primitive | Object | Array<any>
 } {
   const operationDefinitions = query.definitions
-    .filter(d => d.kind === 'OperationDefinition')
+    .filter(d => d.kind === Kind.OPERATION_DEFINITION)
   if (operationDefinitions.length === 0) {
     throw new Error(`Given query has no operation definition`)
   }
