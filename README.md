@@ -60,6 +60,11 @@ Functions of this library accept a configuration object with the following prope
 * `argumentsToIgnore` (type: `string[]`, default: `[]`): List of argument names that should be ignored in any case. If non-null arguments are configured to be ignored, an error will be thrown.
 * `argumentsToConsider` (type: `string[]`, default: `[]`): List of argument names that should be considered, even if the argument is optional and `ignoreOptionalArguments` is set to `true`.
 
+
+### Errors
+Generating random queries may fail. One example is a case where a query hits the defined `maxDepth`, but there are only fields with children to choose from. Choosing such a field but then not choosing a sub-field (due to the `maxDepth` constraint) causes this library to throw an error.
+
+
 ## Providing variable values
 Whenever a randomly generated query requires an [argument](https://facebook.github.io/graphql/draft/#sec-Language.Arguments), this library exposes that argument as a [variable](https://facebook.github.io/graphql/draft/#sec-Language.Variables). The name of those variables reflect the type and field that the argument applies to, as well as the argument name like so:
 
