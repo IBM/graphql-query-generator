@@ -10,7 +10,7 @@ const configuration = {
 }
 const query = generateRandomQuery(gitHubSchema, configuration)
 /**
- * Printing the query using graphql.print(query):
+ * Printing the query using graphql.print(query) results in (for example):
  * 
  * query RandomQuery($Query__marketplaceCategory__slug: String!) {
  *   marketplaceCategory(slug: $Query__marketplaceCategory__slug) {
@@ -22,10 +22,10 @@ const query = generateRandomQuery(gitHubSchema, configuration)
  */
 ```
 
-This library further provides helpers for providing variable values for the randomly generated queries:
+This library further has helpers for providing variable values for the randomly generated queries:
 
 ```javascript
-import { generateRandomQuery, provideVariables } from 'this-library'
+import { provideVariables } from 'this-library'
 
 // custom code containing values / functions to provide:
 const providers = {
@@ -37,7 +37,7 @@ const providers = {
 
 const variables = provideVariables(query, providers, gitHubSchema)
 /**
- * variables could be:
+ * `variables` could be:
  * {
  *   "Query__marketplaceCategory__slug": "first"
  * }
