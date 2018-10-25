@@ -1,4 +1,10 @@
-import { DocumentNode, OperationDefinitionNode, GraphQLSchema, VariableDefinitionNode, getNamedType, GraphQLType, TypeNode } from "graphql";
+import {
+  DocumentNode,
+  OperationDefinitionNode,
+  GraphQLSchema,
+  VariableDefinitionNode,
+  TypeNode
+} from 'graphql'
 
 type Primitive = string | boolean | number | Date
 

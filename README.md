@@ -2,7 +2,7 @@
 Generate randomized GraphQL queries from a given schema. All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). For example:
 
 ```javascript
-import { generateRandomQuery } from 'this-library'
+import { generateRandomQuery, provideVariables } from 'this-library'
 
 const configuration = {
   depthProbability: 0.1,
@@ -19,7 +19,22 @@ const query = generateRandomQuery(gitHubSchema, configuration)
  *     secondaryListingCount
  *   }
  * }
- * 
+ */
+const providers = {
+  '*__*__slug': (otherVars) => {
+    if (Object.keys(otherVars).length === 0) {
+      return 'first'
+    } else {
+      return 'second'
+    }
+  }
+}
+const variables = provideVariables(query, providers, gitHubSchema)
+/**
+ * variables could be:
+ * {
+ *   "Query__marketplaceCategory__slug": "first"
+ * }
  */
 ```
 
