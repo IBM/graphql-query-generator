@@ -28,6 +28,9 @@ This library exposes a function to provide values for these variables:
 
 * `provideVariables(query: DocumentNode, providerMap: ProviderMap, schema: GraphQLSchema)`: Provides values for variables in the given query as defined in the given providerMap.
 
+### Provider map
+The `providerMap` is responsible for providing values for the variables in a query.
+
 The keys of the `providerMap` are either the exact name of the variable or a wildcard where either the `type`, `fieldName`, and/or `argumentName` are replaced by a `*`. For example, the key `*__*__limit` matches all variables for arguments of name `limit`, no matter for what field the argument is used or in which type.
 
-The values of the `providerMap` are either the concrete argument values, or a function that will be invoked to provide that value. Note that for variables with an [enumeration type](https://graphql.org/learn/schema/#enumeration-types), `provideVariables` automatically chooses one value at random.
+reThe values of the `providerMap` are either the concrete argument values, or a function that will be invoked to provide that value. Note that for variables with an [enumeration type](https://graphql.org/learn/schema/#enumeration-types), `provideVariables` automatically chooses one value at random.
