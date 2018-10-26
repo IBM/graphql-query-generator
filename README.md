@@ -1,5 +1,5 @@
 # GraphQL Query Generator
-Generate randomized GraphQL queries from a given schema. All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). __Provider functions__ can be passed to provide values for these variables. For example:
+Generate randomized GraphQL queries from a given schema. All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). _Providers_ can be passed to provide values for these variables. For example:
 
 ```javascript
 import { generateRandomQuery } from 'this-library'
@@ -53,23 +53,23 @@ Functions of this library accept a configuration object with the following prope
 
 
 ### Provider map
-Whenever a randomly generated query or mutation requires an [argument](https://facebook.github.io/graphql/draft/#sec-Language.Arguments), this library exposes that argument as a [variable](https://facebook.github.io/graphql/draft/#sec-Language.Variables). The name of those variables reflect the type and field that the argument applies to, as well as the argument name like so:
+Whenever a randomly generated query or mutation requires an [argument](https://facebook.github.io/graphql/draft/#sec-Language.Arguments), this library exposes that argument as a [variable](https://facebook.github.io/graphql/draft/#sec-Language.Variables). The names of these variables reflect the type and field that the argument applies to, as well as the argument name like so:
 
 ```
 <type>__<fieldName>__<argumentName>
 ```
 
-The `providerMap` is responsible for providing values for the variables in a query.
+The `providerMap` contains values or value producing functions for the variables in a query.
 
-The keys of the `providerMap` are either the exact name of the variable or a wildcard where either the `type`, `fieldName`, and/or `argumentName` are replaced by a `*`. For example, the key `*__*__limit` matches all variables for arguments of name `limit`, no matter for what field the argument is used or in which type.
+The keys of the `providerMap` are either the exact name of the variable or a wildcard where either the `type`, `fieldName`, and/or `argumentName` are replaced by a `*`. For example, the key `*__*__limit` matches all variables for arguments of name `limit`, no matter for what field the argument is used or in which type. If no `providerMap` is passed, a default map `{'*__*__*': null}` is used, which provides a `null` value to all variables (Note: this can be problematic if an argument defines a [non-null](https://facebook.github.io/graphql/draft/#sec-Type-System.Non-Null) value).
 
 The values of the `providerMap` are either the concrete argument values, or a function that will be invoked to provide that value. A provider function will get passed a map of all already provided variable values, which allows to provide values based on previous ones.
 
-Note that for variables with an [enumeration type](https://graphql.org/learn/schema/#enumeration-types), `provideVariables` automatically chooses one value at random.
+Note that for variables with an [enumeration type](https://graphql.org/learn/schema/#enumeration-types), this lirbrary automatically chooses one value at random.
 
 
 ### Errors
-Generating random queries may fail in some cases:
+Generating random queries or mutations may fail in some cases:
 
-* An error is thrown if a query hits the defined `maxDepth`, but there are only fields with children to choose from. Choosing such a field but then not choosing a sub-field (due to the `maxDepth` constraint) causes this library to throw an error.
+* An error is thrown if a query hits the defined `maxDepth`, but there are only fields with children to choose from. Choosing such a field but then not choosing a sub-field for it (due to the `maxDepth` constraint) would result in an invalid query and thus causes this library to throw an error.
 * An error is thrown if there is no provider defined for a variable in the generated query.
