@@ -26,7 +26,7 @@ function getProvider (varName: string, providerMap: ProviderMap) {
   // case: wildcard match
   let provider = null
   let providerFound = false
-  const varNameParts = varName.split('__')
+  const varNameParts = varName.split(/(?<!__)__/g)
   if (varNameParts.length !== 3) {
     throw new Error(`Invalid variable name "${varName}"`)
   }
@@ -34,7 +34,7 @@ function getProvider (varName: string, providerMap: ProviderMap) {
     return a === b || a === '*' || b === '*'
   }
   Object.keys(providerMap).forEach(providerName => {
-    const providerNameParts = providerName.split('__')
+    const providerNameParts = providerName.split(/(?<!__)__/g)
     if (varNameParts.length !== 3) {
       throw new Error(`Invalid provider name "${varName}"`)
     }

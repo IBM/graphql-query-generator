@@ -33,6 +33,27 @@ test(`Obtain random query from example schema`, () => {
   expect(errors).toEqual([])
 })
 
+test(`Obtain complete query from example schema`, () => {
+  const config : Configuration = {
+    breadthProbability: 1,
+    depthProbability: 1,
+    maxDepth: 2
+  }
+
+  const {queryDocument, variableValues} = generateRandomQuery(schema, config)
+  const opDef = getOperationDefinition(queryDocument)
+  const errors = validate(schema, queryDocument)
+
+  console.log(print(queryDocument))
+  console.log(variableValues)
+
+  expect(queryDocument).toBeDefined()
+  expect(print(queryDocument) === '').toEqual(false)
+  expect(Object.keys(opDef.variableDefinitions).length)
+    .toEqual(Object.keys(variableValues).length)
+  expect(errors).toEqual([])
+})
+
 test(`Obtain random query from GitHub schema`, () => {
   const config : Configuration = {
     breadthProbability: 0.2,
@@ -43,8 +64,8 @@ test(`Obtain random query from GitHub schema`, () => {
   }
 
   const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
-  console.log(print(queryDocument))
-  console.log(variableValues)
+  // console.log(print(queryDocument))
+  // console.log(variableValues)
 
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
