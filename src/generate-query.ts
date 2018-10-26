@@ -12,8 +12,10 @@ import {
   NameNode,
   VariableDefinitionNode,
   InputValueDefinitionNode,
-  Kind
+  Kind,
+  getNamedType
 } from 'graphql'
+import { ProviderMap, provideVaribleValue } from './provide-variables';
 
 export type Configuration = {
   depthProbability?: number,
@@ -21,7 +23,8 @@ export type Configuration = {
   maxDepth?: number,
   ignoreOptionalArguments?: boolean,
   argumentsToIgnore?: string[],
-  argumentsToConsider?: string[]
+  argumentsToConsider?: string[],
+  providerMap?: ProviderMap
 }
 
 const DEFAULT_CONFIG : Configuration = {
@@ -33,7 +36,7 @@ const DEFAULT_CONFIG : Configuration = {
   argumentsToConsider: []
 }
 
-// default loc: {start: 0, end: 0}
+// default loc:
 const loc : Location = {
   start: 0,
   end: 0,
@@ -53,9 +56,16 @@ function getDocumentDefinition (definitions) : DocumentNode {
 function getQueryOperationDefinition (
   schema: GraphQLSchema,
   config: Configuration
-) : OperationDefinitionNode {
+) : {
+  queryDocument: OperationDefinitionNode,
+  variableValues: {[varName: string] : any}
+ } {
   const node = schema.getQueryType().astNode
-  const {selectionSet, variableDefinitionsMap} = getSelectionSetAndVars(schema, node, config)
+  const {
+    selectionSet,
+    variableDefinitionsMap,
+    variableValues
+  } = getSelectionSetAndVars(schema, node, config)
   
   // throw error if query would be empty:
   if (selectionSet.selections.length === 0) {
@@ -63,21 +73,31 @@ function getQueryOperationDefinition (
   }
 
   return {
-    kind: Kind.OPERATION_DEFINITION,
-    operation: 'query',
-    selectionSet,
-    variableDefinitions: Object.values(variableDefinitionsMap),
-    loc,
-    name: getName('RandomQuery')
+    queryDocument: {
+      kind: Kind.OPERATION_DEFINITION,
+      operation: 'query',
+      selectionSet,
+      variableDefinitions: Object.values(variableDefinitionsMap),
+      loc,
+      name: getName('RandomQuery')
+    },
+    variableValues
   }
 }
 
 function getMutationOperationDefinition(
   schema: GraphQLSchema,
   config: Configuration
-) : OperationDefinitionNode {
+) : {
+  mutationDocument: OperationDefinitionNode,
+  variableValues: {[varName: string] : any}
+} {
   const node = schema.getMutationType().astNode
-  const {selectionSet, variableDefinitionsMap} = getSelectionSetAndVars(schema, node, config)
+  const {
+    selectionSet,
+    variableDefinitionsMap,
+    variableValues
+  } = getSelectionSetAndVars(schema, node, config)
   
   // throw error if mutation would be empty:
   if (selectionSet.selections.length === 0) {
@@ -85,12 +105,15 @@ function getMutationOperationDefinition(
   }
 
   return {
-    kind: Kind.OPERATION_DEFINITION,
-    operation: 'mutation',
-    selectionSet,
-    variableDefinitions: Object.values(variableDefinitionsMap),
-    loc,
-    name: getName('RandomMutation')
+    mutationDocument: {
+      kind: Kind.OPERATION_DEFINITION,
+      operation: 'mutation',
+      selectionSet,
+      variableDefinitions: Object.values(variableDefinitionsMap),
+      loc,
+      name: getName('RandomMutation')
+    },
+    variableValues
   }
 }
 
@@ -221,42 +244,61 @@ function getRandomFields (
   return results
 }
 
+function getVariableDefinition (name: string, type: TypeNode) : VariableDefinitionNode {
+  return {
+    kind: Kind.VARIABLE_DEFINITION,
+    type: type,
+    variable: {
+      kind: Kind.VARIABLE,
+      name: getName(name)
+    }
+  }
+} 
+
+function getVariable (argName: string, varName: string) : ArgumentNode {
+  return {
+    kind: Kind.ARGUMENT,
+    loc,
+    name: getName(argName),
+    value: {
+      kind: Kind.VARIABLE,
+      name: getName(varName)
+    }
+  }
+}
+
 function getArgsAndVars (
   allArgs: ReadonlyArray<InputValueDefinitionNode>,
   nodeName: string,
   fieldName: string,
-  config: Configuration
+  config: Configuration,
+  schema: GraphQLSchema,
+  providedValues: {[varName: string] : any}
 ) : {
   args: ArgumentNode[],
-  vars: VariableDefinitionNode[]
+  variableDefinitionsMap: {[varName: string] : VariableDefinitionNode},
+  variableValues: {[varName: string] : any}
 } {
   const args : ArgumentNode[] = []
-  const vars : VariableDefinitionNode[] =[]
+  const variableDefinitionsMap : {[varName: string] : VariableDefinitionNode} = {}
+  const variableValues : {[varName: string] : any} = {}
   allArgs
     .filter(arg => considerArgument(arg, config))
     .forEach(arg => {
       const varName = `${nodeName}__${fieldName}__${arg.name.value}`
-      args.push({
-        kind: Kind.ARGUMENT,
-        loc,
-        name: getName(arg.name.value),
-        value: {
-          kind: Kind.VARIABLE,
-          name: getName(varName)
-        }
-      })
-      vars.push({
-        kind: Kind.VARIABLE_DEFINITION,
-        type: arg.type,
-        variable: {
-          kind: Kind.VARIABLE,
-          name: getName(varName)
-        }
-      })
+      args.push(getVariable(arg.name.value, varName))
+      variableDefinitionsMap[varName] = getVariableDefinition(varName, arg.type)
+      const argType = schema.getType(getTypeName(arg.type))
+      variableValues[varName] = provideVaribleValue(
+        varName,
+        argType,
+        config,
+        providedValues
+      )
     })
-  return { args, vars }
+  return { args, variableDefinitionsMap, variableValues }
 }
-
+    
 function getSelectionSetAndVars(
   schema: GraphQLSchema,
   node: DefinitionNode,
@@ -265,60 +307,68 @@ function getSelectionSetAndVars(
 ) : {
   selectionSet: SelectionSetNode,
   variableDefinitionsMap: {
-    [key: string] : VariableDefinitionNode
+    [variableName: string] : VariableDefinitionNode
+  },
+  variableValues: {
+    [variableName: string] : any
   }
  } {
+  let selections : SelectionNode[] = []
+  let variableDefinitionsMap : {[variableName: string] : VariableDefinitionNode} = {}
+  let variableValues : {[variableName: string] : any} = {}
+
   // abort at leaf nodes:
   if (depth === config.maxDepth) {
     return {
       selectionSet: undefined,
-      variableDefinitionsMap: {}
+      variableDefinitionsMap,
+      variableValues
     }
   }
-
-  let selections : SelectionNode[] = []
-  let variableDefinitionsMap : {[key: string] : VariableDefinitionNode} = {}
 
   if (node.kind === Kind.OBJECT_TYPE_DEFINITION) {
     let fields = getRandomFields(node.fields, config, schema, depth)
 
     fields.forEach(field => {
+      // recurse, if field has children:
       const nextNode = schema.getType(getTypeName(field.type)).astNode
-      let selectionSetMap : SelectionSetNode = null
+      let selectionSet : SelectionSetNode = undefined
       if (typeof nextNode !== 'undefined') {
-        const nextSelectionSet = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
-        selectionSetMap = nextSelectionSet.selectionSet
-        variableDefinitionsMap = {...variableDefinitionsMap, ...nextSelectionSet.variableDefinitionsMap}
+        const res = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
+        selectionSet = res.selectionSet
+        variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
+        variableValues = {...variableValues, ...res.variableValues}
       }
 
-      const argsAndVars = getArgsAndVars(
+      const avs = getArgsAndVars(
         field.arguments,
         node.name.value,
         field.name.value,
-        config
+        config,
+        schema,
+        variableValues
       )
-      argsAndVars.vars.forEach(varDef => {
-        variableDefinitionsMap[varDef.variable.name.value] = varDef
-      })
+      variableDefinitionsMap = {...variableDefinitionsMap, ...avs.variableDefinitionsMap}
+      variableValues = {...variableValues, ...avs.variableValues}
 
-      const selectionSet = selectionSetMap && selectionSetMap.selections.length > 0
-        ? selectionSetMap
-        : undefined
       selections.push({
         kind: Kind.FIELD,
         name: getName(field.name.value),
         selectionSet,
-        arguments: argsAndVars.args
+        arguments: avs.args
       })
     })
   }
 
   return {
-    selectionSet: {
-      kind: Kind.SELECTION_SET,
-      selections
-    },
-    variableDefinitionsMap
+    selectionSet: selections.length > 0
+      ? {
+          kind: Kind.SELECTION_SET,
+          selections
+        }
+      : undefined,
+    variableDefinitionsMap,
+    variableValues
   }
 }
 
@@ -327,8 +377,25 @@ export function generateRandomMutation (
   config: Configuration = {}
 ) {
   const finalConfig = {config, ...DEFAULT_CONFIG}
-  const definitions = [getMutationOperationDefinition(schema, finalConfig)]
-  return getDocumentDefinition(definitions)
+
+  // provide default providerMap:
+  if (typeof finalConfig.providerMap !== 'object') {
+    finalConfig.providerMap = {
+      '*__*__*': null
+    }
+  }
+
+  const {
+    mutationDocument,
+    variableValues
+  } = getMutationOperationDefinition(schema, finalConfig)
+
+  const definitions = [mutationDocument]
+
+  return {
+    mutationDocument: getDocumentDefinition(definitions),
+    variableValues
+  }
 }
 
 export function generateRandomQuery (
@@ -336,6 +403,23 @@ export function generateRandomQuery (
   config: Configuration = {}
 ) {
   const finalConfig = {...DEFAULT_CONFIG, ...config}
-  const definitions = [getQueryOperationDefinition(schema, finalConfig)]
-  return getDocumentDefinition(definitions)
+
+  // provide default providerMap:
+  if (typeof finalConfig.providerMap !== 'object') {
+    finalConfig.providerMap = {
+      '*__*__*': null
+    }
+  }
+
+  const {
+    queryDocument,
+    variableValues
+  } = getQueryOperationDefinition(schema, finalConfig)
+
+  const definitions = [queryDocument]
+
+  return {
+    queryDocument: getDocumentDefinition(definitions),
+    variableValues
+  }
 }

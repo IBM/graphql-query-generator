@@ -1,46 +1,35 @@
 # GraphQL Query Generator
-Generate randomized GraphQL queries from a given schema. All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). For example:
+Generate randomized GraphQL queries from a given schema. All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). __Provider functions__ can be passed to provide values for these variables. For example:
 
 ```javascript
 import { generateRandomQuery } from 'this-library'
 
 const configuration = {
   depthProbability: 0.1,
-  breadthProbability: 0.2
-}
-const query = generateRandomQuery(gitHubSchema, configuration)
-/**
- * Printing the query using graphql.print(query) results in (for example):
- * 
- * query RandomQuery($Query__marketplaceCategory__slug: String!) {
- *   marketplaceCategory(slug: $Query__marketplaceCategory__slug) {
- *     howItWorks
- *     name
- *     secondaryListingCount
- *   }
- * }
- */
-```
-
-This library further has helpers for providing variable values for the randomly generated queries:
-
-```javascript
-import { provideVariables } from 'this-library'
-
-// custom code containing values / functions to provide:
-const providers = {
-  '*__*__slug': (otherVars) => {
-    if (Object.keys(otherVars).length === 0) return 'first'
-    return 'second'
+  breadthProbability: 0.2,
+  providerMap: {
+    '*__marketplaceCategory__slug': (providedValues) => {
+      return 'testing'
+    }
   }
 }
-
-const variables = provideVariables(query, providers, gitHubSchema)
+const {queryDocument, variableValues} = generateRandomQuery(gitHubSchema, configuration)
 /**
- * `variables` could be:
- * {
- *   "Query__marketplaceCategory__slug": "first"
- * }
+ * Printing the queryDocument with graphql.print(queryDocument):
+ * 
+ *   query RandomQuery($Query__marketplaceCategory__slug: String!) {
+ *     marketplaceCategory(slug: $Query__marketplaceCategory__slug) {
+ *       howItWorks
+ *       name
+ *       secondaryListingCount
+ *     }
+ *   }
+ * 
+ * ...and the variableValues would be:
+ * 
+ *   {
+ *     "Query__marketplaceCategory__slug": "testing"
+ *   }
  */
 ```
 
@@ -49,6 +38,7 @@ This library exposes two functions for generating random GraphQL queries:
 
 * `getRandomQuery(schema: GraphQLSchema, config: Configuration)`: Produces a random query from the given schema, and considering the passed configuration.
 * `getRandomMutation(schema: GraphQLSchema, config: Configuration)`: Produces a random mutation from the given schema, and considering the passed configuration.
+
 
 ### Configuration
 Functions of this library accept a configuration object with the following properties:
@@ -59,24 +49,16 @@ Functions of this library accept a configuration object with the following prope
 * `ignoreOptionalArguments` (type: `boolean`, default: `true`): If set to `true`, non-mandatory arguments will not be included in the generated query / mutation.
 * `argumentsToIgnore` (type: `string[]`, default: `[]`): List of argument names that should be ignored in any case. If non-null arguments are configured to be ignored, an error will be thrown.
 * `argumentsToConsider` (type: `string[]`, default: `[]`): List of argument names that should be considered, even if the argument is optional and `ignoreOptionalArguments` is set to `true`.
+* `providerMap` (type: `{[varNameQuery: string] : any}`, default: `{'*__*__*': null}`): Map of values or functions to provide values for the variables present in the generated query / mutation. See details below.
 
 
-### Errors
-Generating random queries may fail. One example is a case where a query hits the defined `maxDepth`, but there are only fields with children to choose from. Choosing such a field but then not choosing a sub-field (due to the `maxDepth` constraint) causes this library to throw an error.
-
-
-## Providing variable values
-Whenever a randomly generated query requires an [argument](https://facebook.github.io/graphql/draft/#sec-Language.Arguments), this library exposes that argument as a [variable](https://facebook.github.io/graphql/draft/#sec-Language.Variables). The name of those variables reflect the type and field that the argument applies to, as well as the argument name like so:
+### Provider map
+Whenever a randomly generated query or mutation requires an [argument](https://facebook.github.io/graphql/draft/#sec-Language.Arguments), this library exposes that argument as a [variable](https://facebook.github.io/graphql/draft/#sec-Language.Variables). The name of those variables reflect the type and field that the argument applies to, as well as the argument name like so:
 
 ```
 <type>__<fieldName>__<argumentName>
 ```
 
-This library exposes a function to provide values for these variables:
-
-* `provideVariables(query: DocumentNode, providerMap: ProviderMap, schema: GraphQLSchema)`: Provides values for variables in the given query as defined in the given providerMap.
-
-### Provider map
 The `providerMap` is responsible for providing values for the variables in a query.
 
 The keys of the `providerMap` are either the exact name of the variable or a wildcard where either the `type`, `fieldName`, and/or `argumentName` are replaced by a `*`. For example, the key `*__*__limit` matches all variables for arguments of name `limit`, no matter for what field the argument is used or in which type.
@@ -84,3 +66,10 @@ The keys of the `providerMap` are either the exact name of the variable or a wil
 The values of the `providerMap` are either the concrete argument values, or a function that will be invoked to provide that value. A provider function will get passed a map of all already provided variable values, which allows to provide values based on previous ones.
 
 Note that for variables with an [enumeration type](https://graphql.org/learn/schema/#enumeration-types), `provideVariables` automatically chooses one value at random.
+
+
+### Errors
+Generating random queries may fail in some cases:
+
+* An error is thrown if a query hits the defined `maxDepth`, but there are only fields with children to choose from. Choosing such a field but then not choosing a sub-field (due to the `maxDepth` constraint) causes this library to throw an error.
+* An error is thrown if there is no provider defined for a variable in the generated query.

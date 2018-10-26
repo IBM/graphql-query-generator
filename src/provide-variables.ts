@@ -1,27 +1,31 @@
 import {
-  DocumentNode,
-  OperationDefinitionNode,
-  GraphQLSchema,
-  VariableDefinitionNode,
-  TypeNode,
-  Kind
+  Kind,
+  GraphQLNamedType
 } from 'graphql'
-import { getTypeName } from './generate-query';
+import { Configuration } from './generate-query'
 
 type Primitive = string | boolean | number | Date
 
 export type ProviderMap = {
-  [argTriple: string] : Primitive | Object | Array<any> | Function
+  [varNameQuery: string] : Primitive | Object | Array<any> | Function
 }
 
-function getProvider (providerMap: ProviderMap, varName: string) {
+function getProvider (varName: string, providerMap: ProviderMap) {
+  // case: no providers:
+  if (typeof providerMap === 'undefined') {
+    throw new Error(`No provider found for "${varName}" in ` +
+      `${JSON.stringify(providerMap)}. ` +
+      `Consider applying wildcard provider with "*__*__*"`)
+  }
+
   // case: exact match
   if (typeof providerMap[varName] !== 'undefined') {
     return providerMap[varName]
   }
 
   // case: wildcard match
-  let result = null
+  let provider = null
+  let providerFound = false
   const varNameParts = varName.split('__')
   if (varNameParts.length !== 3) {
     throw new Error(`Invalid variable name "${varName}"`)
@@ -38,24 +42,22 @@ function getProvider (providerMap: ProviderMap, varName: string) {
       return doMatch(varNamePart, providerNameParts[i])
     })
     if (match) {
-      result = providerMap[providerName]
+      providerFound = true
+      provider = providerMap[providerName]
     }
   })
 
-  return result
-}
-
-function isEnumVar (varDef: VariableDefinitionNode, schema: GraphQLSchema) : boolean {
-  const type = schema.getType(getTypeName(varDef.type))
-  const typeDef = type.astNode
-  if (typeof typeDef !== 'undefined' && typeDef.kind === Kind.ENUM_TYPE_DEFINITION) {
-    return true
+  // throw error if no provider was found:
+  if (!providerFound) {
+    throw new Error(`No provider found for "${varName}" in ` +
+      `${JSON.stringify(providerMap)}. ` +
+      `Consider applying wildcard provider with "*__*__*"`)
   }
-  return false
+
+  return provider
 }
 
-function getRandomEnum (varDef: VariableDefinitionNode, schema: GraphQLSchema) {
-  const type = schema.getType(getTypeName(varDef.type))
+function getRandomEnum (type: GraphQLNamedType) {
   const typeDef = type.astNode
   if (typeof typeDef !== 'undefined' && typeDef.kind === Kind.ENUM_TYPE_DEFINITION) {
     let value = typeDef.values[Math.floor(Math.random() * typeDef.values.length)]
@@ -63,39 +65,30 @@ function getRandomEnum (varDef: VariableDefinitionNode, schema: GraphQLSchema) {
   }
 }
 
-export function provideVariables (
-  query: DocumentNode,
-  providerMap: ProviderMap,
-  schema: GraphQLSchema
-) : {
-  [variableName: string] : Primitive | Object | Array<any>
-} {
-  const operationDefinitions = query.definitions
-    .filter(d => d.kind === Kind.OPERATION_DEFINITION)
-  if (operationDefinitions.length === 0) {
-    throw new Error(`Given query has no operation definition`)
+function isEnumType (type: GraphQLNamedType) : boolean {
+  const typeDef = type.astNode
+  if (typeof typeDef !== 'undefined' && typeDef.kind === Kind.ENUM_TYPE_DEFINITION) {
+    return true
+  }
+  return false
+}
+
+export function provideVaribleValue (
+  varName: string,
+  type: GraphQLNamedType,
+  config: Configuration,
+  providedValues: {[varName: string] : any}
+) {
+  const provider = getProvider(varName, config.providerMap)
+
+  let varValue = null
+  if (isEnumType(type)) {
+    varValue = getRandomEnum(type)
+  } else if (typeof provider === 'function') {
+    varValue = provider(providedValues)
+  } else {
+    varValue = provider
   }
 
-  // we know that we have an operation defintion node at this point:
-  const operationDefinition = (operationDefinitions[0] as OperationDefinitionNode)
-
-  const variables = {}
-  operationDefinition.variableDefinitions.forEach(varDef => {
-    const varName = varDef.variable.name.value
-    const provider = getProvider(providerMap, varName)
-    let varValue = null
-
-    if (isEnumVar(varDef, schema)) {
-      varValue = getRandomEnum(varDef, schema)
-    } else if (!provider) {
-      throw new Error(`No provider defined for variable "${varName}"`)
-    } else if (typeof provider === 'function') {
-      varValue = provider(variables)
-    } else {
-      varValue = provider
-    }
-
-    variables[varName] = varValue
-  })
-  return variables
+  return varValue
 }
