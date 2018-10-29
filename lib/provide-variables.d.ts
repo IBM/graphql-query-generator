@@ -4,6 +4,7 @@ declare type Primitive = string | boolean | number | Date;
 export declare type ProviderMap = {
     [varNameQuery: string]: Primitive | Object | Array<any> | Function;
 };
+export declare function matchVarName(query: string, candidates: string[]): string;
 export declare function provideVaribleValue(varName: string, type: GraphQLNamedType, config: Configuration, providedValues: {
     [varName: string]: any;
 }): any;
