@@ -10,6 +10,36 @@ export type ProviderMap = {
   [varNameQuery: string] : Primitive | Object | Array<any> | Function
 }
 
+function doMatch (a: string, b: string) : boolean {
+  return a === b || a === '*' || b === '*'
+}
+
+export function matchVarName (query: string, candidates: string[]) : string {
+  // case: exact match:
+  if (candidates.includes(query)) {
+    return query
+  }
+
+  const queryParts = query.split(/(?<!__)__/g)
+  if (queryParts.length !== 3) {
+    throw new Error(`Invalid variable name query: ${query}`)
+  }
+  for (let candidate of candidates) {
+    const candidateParts = candidate.split(/(?<!__)__/g)
+    if (candidateParts.length !== 3) {
+      throw new Error(`Invalid variable name: ${candidate}`)
+    }
+    const match = candidateParts.every((candPart, i) => {
+      return doMatch(candPart, queryParts[i])
+    })
+    if (match) {
+      return candidate
+    }
+  }
+
+  return null
+}
+
 function getProvider (varName: string, type: GraphQLNamedType, providerMap: ProviderMap) {
   // case: no providers:
   if (typeof providerMap === 'undefined') {
@@ -18,43 +48,16 @@ function getProvider (varName: string, type: GraphQLNamedType, providerMap: Prov
       `Consider applying wildcard provider with "*__*__*"`)
   }
 
-  // case: exact match
-  if (typeof providerMap[varName] !== 'undefined') {
-    return providerMap[varName]
-  }
-
-  // case: wildcard match
-  let provider = null
-  let providerFound = false
-  const varNameParts = varName.split(/(?<!__)__/g)
-  if (varNameParts.length !== 3) {
-    throw new Error(`Invalid variable name "${varName}"`)
-  }
-  function doMatch (a: string, b: string) : boolean {
-    return a === b || a === '*' || b === '*'
-  }
-  Object.keys(providerMap).forEach(providerName => {
-    const providerNameParts = providerName.split(/(?<!__)__/g)
-    if (varNameParts.length !== 3) {
-      throw new Error(`Invalid provider name "${varName}"`)
-    }
-    const match = varNameParts.every((varNamePart, i) => {
-      return doMatch(varNamePart, providerNameParts[i])
-    })
-    if (match) {
-      providerFound = true
-      provider = providerMap[providerName]
-    }
-  })
+  const providerKey = matchVarName(varName, Object.keys(providerMap))
 
   // throw error if no provider was found:
-  if (!providerFound && !isEnumType(type)) {
+  if (!providerKey && !isEnumType(type)) {
     throw new Error(`No provider found for "${varName}" in ` +
       `${JSON.stringify(providerMap)}. ` +
       `Consider applying wildcard provider with "*__*__*"`)
   }
 
-  return provider
+  return providerMap[providerKey]
 }
 
 function getRandomEnum (type: GraphQLNamedType) {

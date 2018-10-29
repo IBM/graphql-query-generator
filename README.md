@@ -63,7 +63,7 @@ The `providerMap` contains values or value producing functions for the variables
 
 The keys of the `providerMap` are either the exact name of the variable or a wildcard where either the `type`, `fieldName`, and/or `argumentName` are replaced by a `*`. For example, the key `*__*__limit` matches all variables for arguments of name `limit`, no matter for what field the argument is used or in which type. If no `providerMap` is passed, a default map `{'*__*__*': null}` is used, which provides a `null` value to all variables (Note: this can be problematic if an argument defines a [non-null](https://facebook.github.io/graphql/draft/#sec-Type-System.Non-Null) value).
 
-The values of the `providerMap` are either the concrete argument values, or a function that will be invoked to provide that value. A provider function will get passed a map of all already provided variable values, which allows to provide values based on previous ones.
+The values of the `providerMap` are either the concrete argument values, or a function that will be invoked to provide that value. A provider function will get passed a map of all already provided variable values, which allows to provide values based on previous ones. This library also exposes a function `matchVarName(query: string, candidates: string[]) : string` that, from a given list of variable names and/or variable name queries, finds the one matching the given variable name or query.
 
 Note that for variables with an [enumeration type](https://graphql.org/learn/schema/#enumeration-types), this lirbrary automatically chooses one value at random.
 
