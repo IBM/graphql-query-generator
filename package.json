@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "description": "",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
     "build_and_run": "tsc && node lib/index.js",
