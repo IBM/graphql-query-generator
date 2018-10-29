@@ -10,7 +10,7 @@ export type ProviderMap = {
   [varNameQuery: string] : Primitive | Object | Array<any> | Function
 }
 
-function getProvider (varName: string, providerMap: ProviderMap) {
+function getProvider (varName: string, type: GraphQLNamedType, providerMap: ProviderMap) {
   // case: no providers:
   if (typeof providerMap === 'undefined') {
     throw new Error(`No provider found for "${varName}" in ` +
@@ -48,7 +48,7 @@ function getProvider (varName: string, providerMap: ProviderMap) {
   })
 
   // throw error if no provider was found:
-  if (!providerFound) {
+  if (!providerFound && !isEnumType(type)) {
     throw new Error(`No provider found for "${varName}" in ` +
       `${JSON.stringify(providerMap)}. ` +
       `Consider applying wildcard provider with "*__*__*"`)
@@ -79,7 +79,7 @@ export function provideVaribleValue (
   config: Configuration,
   providedValues: {[varName: string] : any}
 ) {
-  const provider = getProvider(varName, config.providerMap)
+  const provider = getProvider(varName, type, config.providerMap)
 
   let varValue = null
   if (isEnumType(type)) {

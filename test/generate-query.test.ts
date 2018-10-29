@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import { buildSchema, print, validate, DocumentNode, OperationDefinitionNode, DefinitionNode } from 'graphql'
 import { Configuration, generateRandomQuery } from '../src/index'
+import { GITHUB_PROVIDERS } from './github-providers'
 
 // globals:
 const schemaDef = fs.readFileSync('./test/fixtures/schema.graphql').toString()
@@ -44,9 +45,6 @@ test(`Obtain complete query from example schema`, () => {
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schema, queryDocument)
 
-  console.log(print(queryDocument))
-  console.log(variableValues)
-
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
   expect(Object.keys(opDef.variableDefinitions).length)
@@ -73,5 +71,29 @@ test(`Obtain random query from GitHub schema`, () => {
   expect(Object.keys(opDef.variableDefinitions).length)
     .toEqual(Object.keys(variableValues).length)
   const errors = validate(schemaGitHub, queryDocument)
+  expect(errors).toEqual([])
+})
+
+test(`Provide custom provider map for GitHub schema`, () => {
+  const config : Configuration = {
+    breadthProbability: 0.2,
+    depthProbability: 0.3,
+    maxDepth: 7,
+    ignoreOptionalArguments: true,
+    argumentsToConsider: ['first'],
+    providerMap: GITHUB_PROVIDERS
+  }
+
+  const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
+  const opDef = getOperationDefinition(queryDocument)
+  const errors = validate(schemaGitHub, queryDocument)
+
+  console.log(print(queryDocument))
+  console.log(variableValues)
+
+  expect(queryDocument).toBeDefined()
+  expect(print(queryDocument) === '').toEqual(false)
+  expect(Object.keys(opDef.variableDefinitions).length)
+    .toEqual(Object.keys(variableValues).length)
   expect(errors).toEqual([])
 })

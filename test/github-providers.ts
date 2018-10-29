@@ -35,7 +35,7 @@ function getRandomRepositoryName () {
   return 'oasgraph'
 }
 
-const GITHUB_PROVIDERS = {
+export const GITHUB_PROVIDERS = {
   '*__*__first': 10,
   '*__codeOfConduct__key': 'citizen_code_of_conduct', // or 'contributor_covenant'
   '*__gist__name': 'index.html',
