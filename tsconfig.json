@@ -5,7 +5,7 @@
     "outDir": "lib",
     "sourceMap": true,
     "skipLibCheck": true,
-    "lib": ["es2017"],
+    "lib": ["es2015", "es2017"],
     "declaration": true
   },
   "files": [

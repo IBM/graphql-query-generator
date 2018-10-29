@@ -1,6 +1,6 @@
 {
   "name": "graphql-query-generator",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
