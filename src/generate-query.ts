@@ -237,7 +237,7 @@ function getRandomFields (
     } else if (flat.length > 0) {
       results.push(flat[Math.floor(Math.random() * flat.length)])
     } else {
-      throw new Error(`Cannot pick field from: ${cleanFields.join(', ')}`)
+      throw new Error(`Cannot pick field from: ${cleanFields.map(fd => fd.name.value).join(', ')}`)
     }
   }
 
