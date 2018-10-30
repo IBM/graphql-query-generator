@@ -293,7 +293,7 @@ function getArgsAndVars (
         varName,
         argType,
         config,
-        providedValues
+        {...variableValues, ...providedValues}
       )
     })
   return { args, variableDefinitionsMap, variableValues }

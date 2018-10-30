@@ -10,6 +10,9 @@ const schema = buildSchema(schemaDef)
 const schemaDefGitHub = fs.readFileSync('./test/fixtures/github.graphql').toString()
 const schemaGitHub = buildSchema(schemaDefGitHub)
 
+const schemaDefSimple = fs.readFileSync('./test/fixtures/simple.graphql').toString()
+const schemaSimple = buildSchema(schemaDefSimple)
+
 // helper function:
 function getOperationDefinition (doc: DocumentNode) : OperationDefinitionNode {
   const opDefs : DefinitionNode[] = doc.definitions.filter(def => {
@@ -88,12 +91,41 @@ test(`Provide custom provider map for GitHub schema`, () => {
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
-  console.log(print(queryDocument))
-  console.log(variableValues)
+  // console.log(print(queryDocument))
+  // console.log(variableValues)
 
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
   expect(Object.keys(opDef.variableDefinitions).length)
     .toEqual(Object.keys(variableValues).length)
   expect(errors).toEqual([])
+})
+
+test(`Provided variables are passed to providers`, () => {
+  const config : Configuration = {
+    breadthProbability: 1,
+    depthProbability: 1,
+    providerMap: {
+      '*__*__name': (providedVars) => {
+        if (typeof providedVars['Query__repository__owner'] === 'string') {
+          return 'Two'
+        }
+        return 'One'
+      },
+      '*__*__owner': (providedVars) => {
+        if (typeof providedVars['Query__repository__name'] === 'string') {
+          return 'Two'
+        }
+        return 'One'
+      }
+    }
+  }
+
+  const {queryDocument, variableValues} = generateRandomQuery(schemaSimple, config)
+  const errors = validate(schemaSimple, queryDocument)
+
+  expect(queryDocument).toBeDefined()
+  expect(print(queryDocument) === '').toEqual(false)
+  expect(errors).toEqual([])
+  expect(variableValues['Query__repository__name'] != variableValues['Query__repository__owner']).toBeTruthy()
 })

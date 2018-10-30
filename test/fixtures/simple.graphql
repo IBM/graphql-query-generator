@@ -1,0 +1,8 @@
+type Query {
+  name: String
+  repository(name: String!, owner: String!): String
+}
+
+schema {
+  query: Query
+}
