@@ -43,9 +43,8 @@ export function matchVarName (query: string, candidates: string[]) : string {
 function getProvider (varName: string, type: GraphQLNamedType, providerMap: ProviderMap) {
   // case: no providers:
   if (typeof providerMap === 'undefined') {
-    throw new Error(`No provider found for "${varName}" in ` +
-      `${JSON.stringify(providerMap)}. ` +
-      `Consider applying wildcard provider with "*__*__*"`)
+    throw new Error(`No provider found for "${varName}" because provider map ` +
+    `is undefined.`)
   }
 
   const providerKey = matchVarName(varName, Object.keys(providerMap))
@@ -53,7 +52,7 @@ function getProvider (varName: string, type: GraphQLNamedType, providerMap: Prov
   // throw error if no provider was found:
   if (!providerKey && !isEnumType(type)) {
     throw new Error(`No provider found for "${varName}" in ` +
-      `${JSON.stringify(providerMap)}. ` +
+      `${Object.keys(providerMap).join(', ')}. ` +
       `Consider applying wildcard provider with "*__*__*"`)
   }
 
