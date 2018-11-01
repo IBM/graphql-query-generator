@@ -13,7 +13,9 @@ import {
   VariableDefinitionNode,
   InputValueDefinitionNode,
   Kind,
-  getNamedType
+  getNamedType,
+  assertType,
+  astFromValue
 } from 'graphql'
 import { ProviderMap, provideVaribleValue } from './provide-variables';
 
@@ -141,7 +143,8 @@ function getName (name: string) : NameNode {
 }
 
 function isNestedField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
-  return typeof schema.getType(getTypeName(field.type)).astNode !== 'undefined'
+  const ast = schema.getType(getTypeName(field.type)).astNode
+  return typeof ast !== 'undefined' && ast.kind === Kind.OBJECT_TYPE_DEFINITION
 }
 
 function isInterfaceField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
@@ -187,6 +190,18 @@ function isUnionField (field: FieldDefinitionNode, schema: GraphQLSchema) : bool
   return typeof ast !== 'undefined' && ast.kind === Kind.UNION_TYPE_DEFINITION
 }
 
+function fieldHasLeafs (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
+  const ast = schema.getType(getTypeName(field.type)).astNode
+  if (ast.kind === Kind.OBJECT_TYPE_DEFINITION) {
+    return ast.fields.some(child => {
+      const childAst = schema.getType(getTypeName(child.type)).astNode
+      return typeof childAst === 'undefined' ||
+        childAst.kind === Kind.SCALAR_TYPE_DEFINITION
+    })
+  }
+  return false
+}
+
 function getRandomFields (
   fields: ReadonlyArray<FieldDefinitionNode>,
   config: Configuration,
@@ -204,9 +219,13 @@ function getRandomFields (
     return results
   }
 
-  const nested = cleanFields.filter(field => isNestedField(field, schema))
-  const flat = cleanFields.filter(field => !isNestedField(field, schema))
+  let nested = cleanFields.filter(field => isNestedField(field, schema))
+  // filter out fields that only have nested subfields:
+  if (depth + 2 === config.maxDepth) {
+    nested = nested.filter(field => fieldHasLeafs(field, schema))
+  }
   const nextIsLeaf = depth + 1 === config.maxDepth
+  const flat = cleanFields.filter(field => !isNestedField(field, schema))
   const pickNested = Math.random() <= config.depthProbability
   // console.log(` depth=${depth}, maxDepth=${config.maxDepth}, nextIsLeaf=${nextIsLeaf}, pickOneNested=${pickNested} cleanFields= ${cleanFields.map(f => f.name.value).join(', ')}`)
 

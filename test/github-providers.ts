@@ -47,5 +47,6 @@ export const GITHUB_PROVIDERS = {
   '*__user__login': getRandomUserLogin,
   '*__repository__owner': getRandomUserLogin,
   '*__license__key': getRandomLicenseKey,
-  '*__organization__login': 'Facebook'
+  '*__organization__login': 'Facebook',
+  '*__topic__name': 'test'
 }

@@ -55,6 +55,24 @@ test(`Obtain complete query from example schema`, () => {
   expect(errors).toEqual([])
 })
 
+test(`Avoid picking field with only nested subfields when approaching max depth`, () => {
+  const config : Configuration = {
+    breadthProbability: 1,
+    depthProbability: 1,
+    maxDepth: 3
+  }
+
+  const {queryDocument, variableValues} = generateRandomQuery(schema, config)
+  const opDef = getOperationDefinition(queryDocument)
+  const errors = validate(schema, queryDocument)
+
+  expect(queryDocument).toBeDefined()
+  expect(print(queryDocument) === '').toEqual(false)
+  expect(Object.keys(opDef.variableDefinitions).length)
+    .toEqual(Object.keys(variableValues).length)
+  expect(errors).toEqual([])
+})
+
 test(`Obtain random query from GitHub schema`, () => {
   const config : Configuration = {
     breadthProbability: 0.2,
