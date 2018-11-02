@@ -75,23 +75,24 @@ test(`Avoid picking field with only nested subfields when approaching max depth`
 
 test(`Obtain random query from GitHub schema`, () => {
   const config : Configuration = {
-    breadthProbability: 0.2,
-    depthProbability: 0.6,
-    maxDepth: 7,
+    breadthProbability: 0.5,
+    depthProbability: 0.5,
+    maxDepth: 10,
     ignoreOptionalArguments: true,
     argumentsToConsider: ['first']
   }
 
   const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
+  const opDef = getOperationDefinition(queryDocument)
+  const errors = validate(schemaGitHub, queryDocument)
+
   // console.log(print(queryDocument))
   // console.log(variableValues)
 
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
-  const opDef = getOperationDefinition(queryDocument)
   expect(Object.keys(opDef.variableDefinitions).length)
     .toEqual(Object.keys(variableValues).length)
-  const errors = validate(schemaGitHub, queryDocument)
   expect(errors).toEqual([])
 })
 

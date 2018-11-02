@@ -227,14 +227,14 @@ function getRandomFields (
   const nextIsLeaf = depth + 1 === config.maxDepth
   const flat = cleanFields.filter(field => !isNestedField(field, schema))
   const pickNested = Math.random() <= config.depthProbability
-  // console.log(` depth=${depth}, maxDepth=${config.maxDepth}, nextIsLeaf=${nextIsLeaf}, pickOneNested=${pickNested} cleanFields= ${cleanFields.map(f => f.name.value).join(', ')}`)
 
-  // if depth probability is high, definitely chose one nested field if one exists:
+  // if we decide to pick nested, choose one nested field (if one exists)...
   if (pickNested && nested.length > 0 && !nextIsLeaf) {
     let nestedIndex = Math.floor(Math.random() * nested.length)
     results.push(nested[nestedIndex])
     nested.splice(nestedIndex, 1)
 
+    // ...and possibly choose more:
     nested.forEach(field => {
       if (Math.random() <= config.breadthProbability) {
         results.push(field)
@@ -251,10 +251,14 @@ function getRandomFields (
 
   // ensure to pick at least one field:
   if (results.length === 0) {
-    if (!nextIsLeaf && cleanFields.length > 0) {
-      results.push(cleanFields[Math.floor(Math.random() * cleanFields.length)])
+    // if the next level is not the last, we can choose ANY field:
+    if (!nextIsLeaf) {
+      const forcedCleanIndex = Math.floor(Math.random() * cleanFields.length)
+      results.push(cleanFields[forcedCleanIndex])
+    // ...otherwise, we HAVE TO choose a flat field:
     } else if (flat.length > 0) {
-      results.push(flat[Math.floor(Math.random() * flat.length)])
+      const forcedFlatIndex = Math.floor(Math.random() * flat.length)
+      results.push(flat[forcedFlatIndex])
     } else {
       throw new Error(`Cannot pick field from: ${cleanFields.map(fd => fd.name.value).join(', ')}`)
     }
