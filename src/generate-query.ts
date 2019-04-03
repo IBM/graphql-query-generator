@@ -13,11 +13,9 @@ import {
   VariableDefinitionNode,
   InputValueDefinitionNode,
   Kind,
-  getNamedType,
-  assertType,
-  astFromValue
+  InlineFragmentNode
 } from 'graphql'
-import { ProviderMap, provideVaribleValue } from './provide-variables';
+import { ProviderMap, provideVaribleValue } from './provide-variables'
 
 export type Configuration = {
   depthProbability?: number,
@@ -144,12 +142,10 @@ function getName (name: string) : NameNode {
 
 function isNestedField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
-  return typeof ast !== 'undefined' && ast.kind === Kind.OBJECT_TYPE_DEFINITION
-}
-
-function isInterfaceField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
-  const ast = schema.getType(getTypeName(field.type)).astNode
-  return typeof ast !== 'undefined' && ast.kind === Kind.INTERFACE_TYPE_DEFINITION
+  return typeof ast !== 'undefined' 
+    && (ast.kind === Kind.OBJECT_TYPE_DEFINITION 
+      || ast.kind === Kind.INTERFACE_TYPE_DEFINITION 
+      || ast.kind === Kind.UNION_TYPE_DEFINITION)
 }
 
 function considerArgument (arg: InputValueDefinitionNode, config: Configuration) : boolean {
@@ -185,11 +181,6 @@ function considerArgument (arg: InputValueDefinitionNode, config: Configuration)
   }
 }
 
-function isUnionField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
-  const ast = schema.getType(getTypeName(field.type)).astNode
-  return typeof ast !== 'undefined' && ast.kind === Kind.UNION_TYPE_DEFINITION
-}
-
 function fieldHasLeafs (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
   if (ast.kind === Kind.OBJECT_TYPE_DEFINITION) {
@@ -210,22 +201,13 @@ function getRandomFields (
 ) : ReadonlyArray<FieldDefinitionNode> {
   const results = []
 
-  // filter Interfaces and Unions (for now):
-  const cleanFields = fields
-    .filter(field => !isInterfaceField(field, schema))
-    .filter(field => !isUnionField(field, schema))
-
-  if (cleanFields.length === 0) {
-    return results
-  }
-
-  let nested = cleanFields.filter(field => isNestedField(field, schema))
+  let nested = fields.filter(field => isNestedField(field, schema))
   // filter out fields that only have nested subfields:
   if (depth + 2 === config.maxDepth) {
     nested = nested.filter(field => fieldHasLeafs(field, schema))
   }
   const nextIsLeaf = depth + 1 === config.maxDepth
-  const flat = cleanFields.filter(field => !isNestedField(field, schema))
+  const flat = fields.filter(field => !isNestedField(field, schema))
   const pickNested = Math.random() <= config.depthProbability
 
   // if we decide to pick nested, choose one nested field (if one exists)...
@@ -253,14 +235,14 @@ function getRandomFields (
   if (results.length === 0) {
     // if the next level is not the last, we can choose ANY field:
     if (!nextIsLeaf) {
-      const forcedCleanIndex = Math.floor(Math.random() * cleanFields.length)
-      results.push(cleanFields[forcedCleanIndex])
+      const forcedCleanIndex = Math.floor(Math.random() * fields.length)
+      results.push(fields[forcedCleanIndex])
     // ...otherwise, we HAVE TO choose a flat field:
     } else if (flat.length > 0) {
       const forcedFlatIndex = Math.floor(Math.random() * flat.length)
       results.push(flat[forcedFlatIndex])
     } else {
-      throw new Error(`Cannot pick field from: ${cleanFields.map(fd => fd.name.value).join(', ')}`)
+      throw new Error(`Cannot pick field from: ${fields.map(fd => fd.name.value).join(', ')}`)
     }
   }
 
@@ -381,13 +363,294 @@ function getSelectionSetAndVars(
         arguments: avs.args
       })
     })
+
+  } else if (node.kind === Kind.INTERFACE_TYPE_DEFINITION) {
+    let fields = getRandomFields(node.fields, config, schema, depth)
+
+    fields.forEach(field => {
+      // recurse, if field has children:
+      const nextNode = schema.getType(getTypeName(field.type)).astNode
+      let selectionSet : SelectionSetNode = undefined
+      if (typeof nextNode !== 'undefined') {
+        const res = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
+        selectionSet = res.selectionSet
+        variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
+        variableValues = {...variableValues, ...res.variableValues}
+      }
+
+      const avs = getArgsAndVars(
+        field.arguments,
+        node.name.value,
+        field.name.value,
+        config,
+        schema,
+        variableValues
+      )
+      variableDefinitionsMap = {...variableDefinitionsMap, ...avs.variableDefinitionsMap}
+      variableValues = {...variableValues, ...avs.variableValues}
+
+      selections.push({
+        kind: Kind.FIELD,
+        name: getName(field.name.value),
+        selectionSet,
+        arguments: avs.args
+      })
+    })
+
+        // get all objects that implement an interface
+        let objectsImplementingInterface = Object.values(schema.getTypeMap()).filter((namedType) => {
+          if (namedType.astNode && namedType.astNode.kind === "ObjectTypeDefinition") {
+            let interfaceNames = namedType.astNode.interfaces.map((interfaceNamedType) => {
+              return interfaceNamedType.name.value
+            })
+    
+            if (interfaceNames.includes(node.name.value)) {
+              return true
+            }
+          }
+    
+          return false
+        })
+
+    // randomly select named types from the union
+    let pickObjectsImplementingInterface = objectsImplementingInterface.filter(() => {
+      return Math.random() <= config.breadthProbability
+    })
+
+    // if no named types are selected, select any one
+    if (pickObjectsImplementingInterface.length === 0) {
+      const forcedCleanIndex = Math.floor(Math.random() * objectsImplementingInterface.length)
+      pickObjectsImplementingInterface.push(objectsImplementingInterface[forcedCleanIndex])
+    }
+
+    pickObjectsImplementingInterface.forEach((namedType) => {
+      if (namedType.astNode) {
+        let type = namedType.astNode
+
+        // unions can only contain objects
+        if (type.kind === Kind.OBJECT_TYPE_DEFINITION) {
+
+            // Get selections
+            let selectionSet : SelectionSetNode = undefined
+            const res = getSelectionSetAndVars(schema, type, config, depth)
+            selectionSet = res.selectionSet
+            variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
+            variableValues = {...variableValues, ...res.variableValues}
+
+            let fragment : InlineFragmentNode = {
+              kind: Kind.INLINE_FRAGMENT,
+              typeCondition: {
+                kind: Kind.NAMED_TYPE,
+                name: {
+                  kind: Kind.NAME,
+                  value: type.name.value
+                }
+              },
+              selectionSet: selectionSet
+            }
+    
+            selections.push(fragment)
+        } else {
+          throw Error(`There should only be object types ` + 
+            `in the selectionSet but found: ` + 
+            `"${JSON.stringify(type, null, 2)}"`, )
+        }
+      } else {
+        selections.push({
+          kind: Kind.FIELD,
+          name: {
+            kind: Kind.NAME,
+            value: namedType.name
+          }
+        })
+      }
+    })
+
+  } else if (node.kind === Kind.UNION_TYPE_DEFINITION) {
+    // get the named types in the union
+    let unionNamedTypes = node.types.map((namedTypeNode) => {
+      return schema.getType(namedTypeNode.name.value)
+    })
+
+    // randomly select named types from the union
+    let pickUnionNamedTypes = unionNamedTypes.filter(() => {
+      return Math.random() <= config.breadthProbability
+    })
+
+    // if no named types are selected, select any one
+    if (pickUnionNamedTypes.length === 0) {
+      const forcedCleanIndex = Math.floor(Math.random() * unionNamedTypes.length)
+      pickUnionNamedTypes.push(unionNamedTypes[forcedCleanIndex])
+    }
+    
+    // // Used to make ensure unique field names/aliases
+    // let fieldNames = {}
+
+    pickUnionNamedTypes.forEach((namedType) => {
+      if (namedType.astNode) {
+        let type = namedType.astNode
+
+        // unions can only contain objects
+        if (type.kind === Kind.OBJECT_TYPE_DEFINITION) {
+
+            // Get selections
+            let selectionSet : SelectionSetNode = undefined
+            const res = getSelectionSetAndVars(schema, type, config, depth)
+            selectionSet = res.selectionSet
+            variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
+            variableValues = {...variableValues, ...res.variableValues}
+
+            // // Make sure selections do not have overlapping field names/aliases
+            // selectionSet.selections.forEach((selectionNode) => {      
+            //   if (selectionNode.kind === Kind.FIELD) {
+            //     let fieldName = selectionNode.name.value
+
+            //     // Get the type of the field
+            //     // Can be nonnullable
+            //     let nextType = type.fields.find((fd) => {
+            //       return fd.name.value === fieldName
+            //     }).type
+
+            //     // See if this field name/alias has been encountered before
+            //     if (fieldName in fieldNames) {
+            //       // See if the type matches the stored type
+            //       if (fieldNames[fieldName].stringifiedPreferredType !== JSON.stringify(nextType)) {
+
+            //         // Add alias
+            //         selectionNode = {...selectionNode, ...{alias: {
+            //           kind: Kind.NAME,
+            //           value: `${fieldName}${fieldNames[fieldName].aliasNumber++}`
+            //         }}}
+            //       }
+
+            //     // This field name/alias has not been encountered before
+            //     } else {
+            //       // Store the field name
+            //       fieldNames[fieldName] = {
+            //         stringifiedPreferredType: JSON.stringify(nextType),
+            //         aliasNumber: 2
+            //       }
+            //     }
+
+            //   } else if (selectionNode.kind === Kind.INLINE_FRAGMENT) {
+            //     selectionNode.selectionSet.selections.forEach((fragSelectionNode) => {
+
+            //       if (fragSelectionNode.kind === Kind.FIELD) {
+            //         // Get the type of the field
+            //         // Can be nonnullable
+            //         let nextType = type.fields.find((fd) => {
+            //           return fd.name.value === fieldName
+            //         }).type
+
+            //         // See if this field name/alias has been encountered before
+            //         if (fieldName in fieldNames) {
+            //           // See if the type matches the stored type
+            //           if (fieldNames[fieldName].stringifiedPreferredType !== JSON.stringify(nextType)) {
+
+            //             // Add alias
+            //             selectionNode = {...selectionNode, ...{alias: {
+            //               kind: Kind.NAME,
+            //               value: `${fieldName}${fieldNames[fieldName].aliasNumber++}`
+            //             }}}
+            //           }
+
+            //         // This field name/alias has not been encountered before
+            //         } else {
+            //           // Store the field name
+            //           fieldNames[fieldName] = {
+            //             stringifiedPreferredType: JSON.stringify(nextType),
+            //             aliasNumber: 2
+            //           }
+            //         }
+            //       } else {
+            //         // Ignore because will not affect this name space
+            //       }
+            //     })
+
+            //   } else {
+            //     throw Error(`There should only be fields or inline fragments ` + 
+            //       `in the selectionSet but found: ` + 
+            //       `"${JSON.stringify(selectionNode, null, 2)}"`, )
+            //   }
+            // })
+
+            let fragment : InlineFragmentNode = {
+              kind: Kind.INLINE_FRAGMENT,
+              typeCondition: {
+                kind: Kind.NAMED_TYPE,
+                name: {
+                  kind: Kind.NAME,
+                  value: type.name.value
+                }
+              },
+              selectionSet: selectionSet
+            }
+    
+            selections.push(fragment)
+        } else {
+          throw Error(`There should only be object types ` + 
+            `in the selectionSet but found: ` + 
+            `"${JSON.stringify(type, null, 2)}"`, )
+        }
+      } else {
+        selections.push({
+          kind: Kind.FIELD,
+          name: {
+            kind: Kind.NAME,
+            value: namedType.name
+          }
+        })
+      }
+    })
   }
 
+  let aliasIndexes : {[fieldName: string]: number} = {}
+  let cleanselections : SelectionNode[] = []
+  // ensure unique field names/aliases
+  selections.forEach((selectionNode) => {
+    if (selectionNode.kind === Kind.FIELD) {
+      let fieldName = selectionNode.name.value
+      if (fieldName in aliasIndexes) {
+        cleanselections.push({...selectionNode, ...{alias: {
+          kind: Kind.NAME,
+          value: `${fieldName}${aliasIndexes[fieldName]++}`
+        }}})
+      } else {
+        aliasIndexes[fieldName] = 2
+        cleanselections.push(selectionNode)
+      }
+
+    } else if (selectionNode.kind === Kind.INLINE_FRAGMENT) { 
+      let cleanFragmentSelections : SelectionNode[] = []
+      selectionNode.selectionSet.selections.forEach((fragmentSelectionNode) => {
+
+        if (fragmentSelectionNode.kind === Kind.FIELD) {
+          let fieldName = fragmentSelectionNode.name.value
+          if (fieldName in aliasIndexes) {
+            cleanFragmentSelections.push({...fragmentSelectionNode, ...{alias: {
+              kind: Kind.NAME,
+              value: `${fieldName}${aliasIndexes[fieldName]++}`
+            }}})
+
+          } else {
+            aliasIndexes[fieldName] = 2
+            cleanFragmentSelections.push(fragmentSelectionNode)
+          }
+        }
+      }) 
+
+      selectionNode.selectionSet.selections = cleanFragmentSelections
+      cleanselections.push(selectionNode)
+    } else {
+      throw Error(`There should not be any fragment spreads in the selectionNode "${JSON.stringify(selectionNode, null, 2)}"`)
+    }
+  })
+
   return {
-    selectionSet: selections.length > 0
+    selectionSet: cleanselections.length > 0
       ? {
           kind: Kind.SELECTION_SET,
-          selections
+          selections: cleanselections
         }
       : undefined,
     variableDefinitionsMap,

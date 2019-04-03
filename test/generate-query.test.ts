@@ -1,5 +1,5 @@
 import * as fs from 'fs'
-import { buildSchema, print, validate, DocumentNode, OperationDefinitionNode, DefinitionNode } from 'graphql'
+import { buildSchema, print, validate, DocumentNode, OperationDefinitionNode, DefinitionNode, parse } from 'graphql'
 import { Configuration, generateRandomQuery } from '../src/index'
 import { GITHUB_PROVIDERS } from './github-providers'
 
@@ -85,6 +85,14 @@ test(`Obtain random query from GitHub schema`, () => {
   const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
+
+  const fs = require('fs')
+
+  fs.writeFile('query', print(queryDocument), (err) => {
+    if (err) {
+      console.log(err)
+    }
+  })
 
   // console.log(print(queryDocument))
   // console.log(variableValues)
