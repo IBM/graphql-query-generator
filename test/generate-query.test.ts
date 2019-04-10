@@ -1,5 +1,5 @@
 import * as fs from 'fs'
-import { buildSchema, print, validate, DocumentNode, OperationDefinitionNode, DefinitionNode } from 'graphql'
+import { buildSchema, print, validate, DocumentNode, OperationDefinitionNode, DefinitionNode, parse } from 'graphql'
 import { Configuration, generateRandomQuery } from '../src/index'
 import { GITHUB_PROVIDERS } from './github-providers'
 
@@ -83,7 +83,8 @@ test(`Obtain random query from GitHub schema`, () => {
     ignoreOptionalArguments: true,
     argumentsToConsider: ['first'],
     considerInterfaces: true,
-    considerUnions: true
+    considerUnions: true,
+    seed: 3
   }
 
   const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
@@ -98,6 +99,42 @@ test(`Obtain random query from GitHub schema`, () => {
   expect(Object.keys(opDef.variableDefinitions).length)
     .toEqual(Object.keys(variableValues).length)
   expect(errors).toEqual([])
+})
+
+test(`Seeded query generation is deterministic`, () => {
+  const config : Configuration = {
+    breadthProbability: 0.5,
+    depthProbability: 0.5,
+    maxDepth: 10,
+    ignoreOptionalArguments: true,
+    argumentsToConsider: ['first'],
+    considerInterfaces: true,
+    considerUnions: true,
+    seed: 3
+  }
+
+  /**
+   * Target query:
+   * 
+   * query RandomQuery($Query__codeOfConduct__key: String!) {
+      codeOfConduct(key: $Query__codeOfConduct__key) {
+        name
+        url
+      }
+    }
+   */
+
+  const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
+  const opDef = getOperationDefinition(queryDocument)
+  const errors = validate(schemaGitHub, queryDocument)
+
+  expect(queryDocument).toBeDefined()
+  expect(print(queryDocument) === '').toEqual(false)
+  expect(Object.keys(opDef.variableDefinitions).length)
+    .toEqual(Object.keys(variableValues).length)
+  expect(errors).toEqual([])
+  expect(print(queryDocument).trim().split(`\n`).length).toBe(6)
+  expect(print(queryDocument).includes('codeOfConduct')).toBeTruthy()
 })
 
 test(`Provide custom provider map for GitHub schema`, () => {

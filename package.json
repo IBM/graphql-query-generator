@@ -36,5 +36,8 @@
       "json",
       "node"
     ]
+  },
+  "dependencies": {
+    "seedrandom": "^3.0.1"
   }
 }

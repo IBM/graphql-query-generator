@@ -16,6 +16,9 @@ import {
   InlineFragmentNode,
   GraphQLObjectType
 } from 'graphql'
+
+import * as seedrandom from 'seedrandom'
+
 import { ProviderMap, provideVaribleValue } from './provide-variables'
 
 export type Configuration = {
@@ -27,7 +30,13 @@ export type Configuration = {
   argumentsToConsider?: string[],
   providerMap?: ProviderMap,
   considerInterfaces?: boolean,
-  considerUnions?: boolean
+  considerUnions?: boolean,
+  seed?: number,
+}
+
+type InternalConfiguration = Configuration & {
+  seed: number,
+  nextSeed?: number
 }
 
 const DEFAULT_CONFIG : Configuration = {
@@ -60,7 +69,7 @@ function getDocumentDefinition (definitions) : DocumentNode {
 
 function getQueryOperationDefinition (
   schema: GraphQLSchema,
-  config: Configuration
+  config: InternalConfiguration
 ) : {
   queryDocument: OperationDefinitionNode,
   variableValues: {[varName: string] : any}
@@ -92,7 +101,7 @@ function getQueryOperationDefinition (
 
 function getMutationOperationDefinition(
   schema: GraphQLSchema,
-  config: Configuration
+  config: InternalConfiguration
 ) : {
   mutationDocument: OperationDefinitionNode,
   variableValues: {[varName: string] : any}
@@ -145,14 +154,6 @@ function getName (name: string) : NameNode {
   }
 }
 
-function isNestedField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
-  const ast = schema.getType(getTypeName(field.type)).astNode
-  return typeof ast !== 'undefined' 
-    && (ast.kind === Kind.OBJECT_TYPE_DEFINITION 
-      || ast.kind === Kind.INTERFACE_TYPE_DEFINITION 
-      || ast.kind === Kind.UNION_TYPE_DEFINITION)
-}
-
 function isObjectField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
   return typeof ast !== 'undefined' && ast.kind === Kind.OBJECT_TYPE_DEFINITION 
@@ -168,7 +169,7 @@ function isUnionField (field: FieldDefinitionNode, schema: GraphQLSchema) : bool
   return typeof ast !== 'undefined' && ast.kind === Kind.UNION_TYPE_DEFINITION
 }
 
-function considerArgument (arg: InputValueDefinitionNode, config: Configuration) : boolean {
+function considerArgument (arg: InputValueDefinitionNode, config: InternalConfiguration) : boolean {
   const isArgumentToIgnore = config.argumentsToIgnore.includes(arg.name.value)
   const isArgumentToConsider = config.argumentsToConsider.includes(arg.name.value)
   const isMand = isMandatoryType(arg.type)
@@ -220,12 +221,13 @@ function fieldHasLeafs (field: FieldDefinitionNode, schema: GraphQLSchema) : boo
       })
     }))
   }
+
   return false
 }
 
 function getRandomFields (
   fields: ReadonlyArray<FieldDefinitionNode>,
-  config: Configuration,
+  config: InternalConfiguration,
   schema: GraphQLSchema,
   depth: number
 ) : ReadonlyArray<FieldDefinitionNode> {
@@ -282,22 +284,24 @@ function getRandomFields (
     })
   }
 
+
+
   // filter out fields that only have nested subfields:
   if (depth + 2 === config.maxDepth) {
     nested = nested.filter(field => fieldHasLeafs(field, schema))
   }
   const nextIsLeaf = depth + 1 === config.maxDepth
-  const pickNested = Math.random() <= config.depthProbability
+  const pickNested = random(config) <= config.depthProbability
 
   // if we decide to pick nested, choose one nested field (if one exists)...
   if (pickNested && nested.length > 0 && !nextIsLeaf) {
-    let nestedIndex = Math.floor(Math.random() * nested.length)
+    let nestedIndex = Math.floor(random(config) * nested.length)
     results.push(nested[nestedIndex])
     nested.splice(nestedIndex, 1)
 
     // ...and possibly choose more:
     nested.forEach(field => {
-      if (Math.random() <= config.breadthProbability) {
+      if (random(config) <= config.breadthProbability) {
         results.push(field)
       }
     })
@@ -305,7 +309,7 @@ function getRandomFields (
 
   // pick flat fields based on the breadth probability:
   flat.forEach(field => {
-    if (Math.random() <= config.breadthProbability) {
+    if (random(config) <= config.breadthProbability) {
       results.push(field)
     }
   })
@@ -314,11 +318,11 @@ function getRandomFields (
   if (results.length === 0) {
     // if the next level is not the last, we can choose ANY field:
     if (!nextIsLeaf) {
-      const forcedCleanIndex = Math.floor(Math.random() * fields.length)
+      const forcedCleanIndex = Math.floor(random(config) * fields.length)
       results.push(fields[forcedCleanIndex])
     // ...otherwise, we HAVE TO choose a flat field:
     } else if (flat.length > 0) {
-      const forcedFlatIndex = Math.floor(Math.random() * flat.length)
+      const forcedFlatIndex = Math.floor(random(config) * flat.length)
       results.push(flat[forcedFlatIndex])
     } else {
       throw new Error(`Cannot pick field from: ${fields.map(fd => fd.name.value).join(', ')}`)
@@ -355,7 +359,7 @@ function getArgsAndVars (
   allArgs: ReadonlyArray<InputValueDefinitionNode>,
   nodeName: string,
   fieldName: string,
-  config: Configuration,
+  config: InternalConfiguration,
   schema: GraphQLSchema,
   providedValues: {[varName: string] : any}
 ) : {
@@ -386,7 +390,7 @@ function getArgsAndVars (
 function getSelectionSetAndVars(
   schema: GraphQLSchema,
   node: DefinitionNode,
-  config: Configuration,
+  config: InternalConfiguration,
   depth: number = 0
 ) : {
   selectionSet: SelectionSetNode,
@@ -493,12 +497,12 @@ function getSelectionSetAndVars(
 
     // randomly select named types from the union
     let pickObjectsImplementingInterface = objectsImplementingInterface.filter(() => {
-      return Math.random() <= config.breadthProbability
+      return random(config) <= config.breadthProbability
     })
 
     // if no named types are selected, select any one
     if (pickObjectsImplementingInterface.length === 0) {
-      const forcedCleanIndex = Math.floor(Math.random() * objectsImplementingInterface.length)
+      const forcedCleanIndex = Math.floor(random(config) * objectsImplementingInterface.length)
       pickObjectsImplementingInterface.push(objectsImplementingInterface[forcedCleanIndex])
     }
 
@@ -553,12 +557,12 @@ function getSelectionSetAndVars(
 
     // randomly select named types from the union
     let pickUnionNamedTypes = unionNamedTypes.filter(() => {
-      return Math.random() <= config.breadthProbability
+      return random(config) <= config.breadthProbability
     })
 
     // if no named types are selected, select any one
     if (pickUnionNamedTypes.length === 0) {
-      const forcedCleanIndex = Math.floor(Math.random() * unionNamedTypes.length)
+      const forcedCleanIndex = Math.floor(random(config) * unionNamedTypes.length)
       pickUnionNamedTypes.push(unionNamedTypes[forcedCleanIndex])
     }
     
@@ -741,7 +745,13 @@ export function generateRandomMutation (
   schema: GraphQLSchema,
   config: Configuration = {}
 ) {
-  const finalConfig = {config, ...DEFAULT_CONFIG}
+  const finalConfig : InternalConfiguration = {
+    ...DEFAULT_CONFIG, 
+    ...config, 
+    seed: typeof config.seed !== 'undefined'
+      ? config.seed
+      : Math.random()
+  }
 
   // provide default providerMap:
   if (typeof finalConfig.providerMap !== 'object') {
@@ -759,7 +769,8 @@ export function generateRandomMutation (
 
   return {
     mutationDocument: getDocumentDefinition(definitions),
-    variableValues
+    variableValues,
+    seed: finalConfig.seed
   }
 }
 
@@ -767,7 +778,13 @@ export function generateRandomQuery (
   schema: GraphQLSchema,
   config: Configuration = {}
 ) {
-  const finalConfig = {...DEFAULT_CONFIG, ...config}
+  const finalConfig : InternalConfiguration = {
+    ...DEFAULT_CONFIG, 
+    ...config, 
+    seed: typeof config.seed !== 'undefined'
+      ? config.seed
+      : Math.random()
+  }
 
   // provide default providerMap:
   if (typeof finalConfig.providerMap !== 'object') {
@@ -785,6 +802,17 @@ export function generateRandomQuery (
 
   return {
     queryDocument: getDocumentDefinition(definitions),
-    variableValues
+    variableValues,
+    seed: finalConfig.seed
+  }
+}
+
+function random(config: InternalConfiguration) {
+  if (typeof config.nextSeed !== 'undefined') {
+    config.nextSeed = seedrandom(config.nextSeed)()
+    return config.nextSeed
+  } else {
+    config.nextSeed = seedrandom(config.seed)()
+    return config.nextSeed
   }
 }
