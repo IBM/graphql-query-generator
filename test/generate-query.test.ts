@@ -137,6 +137,33 @@ test(`Seeded query generation is deterministic`, () => {
   expect(print(queryDocument).includes('codeOfConduct')).toBeTruthy()
 })
 
+test(`Missing provider leads to error`, () => {
+  const config : Configuration = {
+    breadthProbability: 0.5,
+    depthProbability: 0.5,
+    maxDepth: 10,
+    ignoreOptionalArguments: true,
+    argumentsToConsider: ['first'],
+    considerInterfaces: true,
+    considerUnions: true,
+    seed: 3,
+    providerMap: {'blub__blib__blab': 'blob'}
+  }
+
+  /**
+   * Target query:
+   * 
+   * query RandomQuery($Query__codeOfConduct__key: String!) {
+      codeOfConduct(key: $Query__codeOfConduct__key) {
+        name
+        url
+      }
+    }
+   */
+
+  expect(() => generateRandomQuery(schemaGitHub, config)).toThrowError(`No provider found for "Query__codeOfConduct__key" in blub__blib__blab. Consider applying wildcard provider with "*__*__*"`)
+})
+
 test(`Provide custom provider map for GitHub schema`, () => {
   const config : Configuration = {
     breadthProbability: 0.2,
