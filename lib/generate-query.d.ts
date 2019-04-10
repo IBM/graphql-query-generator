@@ -11,6 +11,7 @@ export declare type Configuration = {
     considerInterfaces?: boolean;
     considerUnions?: boolean;
     seed?: number;
+    pickNestedQueryField?: boolean;
 };
 export declare function getTypeName(type: TypeNode): string;
 export declare function generateRandomMutation(schema: GraphQLSchema, config?: Configuration): {

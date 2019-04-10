@@ -53,6 +53,7 @@ Functions of this library accept a configuration object with the following prope
 * `considerInterfaces` (type: `boolean`, default: `false`): Create queries containing interfaces (by calling fields in the interfaces and/or creating fragments on objects implementing the interfaces)
 * `considerUnions` (type: `boolean`, default: `false`): Create queries containing unions (by creating fragments on objects of the unions)
 * `seed` (type: `number`, optional): Allows the generator to produce queries deterministically based on a random number generator seed. If no seed is provided, a random seed will be provided. The seed that is used to produce the query, whether user-provided or randomly generated, will be included in the output.
+* `pickNestedQueryField` (type: `boolean`, default: `false`): Guarantees that the generator will pick at least one nested field. 
 
 ### Provider map
 Whenever a randomly generated query or mutation requires an [argument](https://facebook.github.io/graphql/draft/#sec-Language.Arguments), this library exposes that argument as a [variable](https://facebook.github.io/graphql/draft/#sec-Language.Variables). The names of these variables reflect the type and field that the argument applies to, as well as the argument name like so:

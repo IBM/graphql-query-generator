@@ -32,6 +32,7 @@ export type Configuration = {
   considerInterfaces?: boolean,
   considerUnions?: boolean,
   seed?: number,
+  pickNestedQueryField?: boolean
 }
 
 type InternalConfiguration = Configuration & {
@@ -47,7 +48,8 @@ const DEFAULT_CONFIG : Configuration = {
   argumentsToIgnore: [],
   argumentsToConsider: [],
   considerInterfaces: false,
-  considerUnions: false
+  considerUnions: false,
+  pickNestedQueryField: false
 }
 
 // default loc:
@@ -284,8 +286,6 @@ function getRandomFields (
     })
   }
 
-
-
   // filter out fields that only have nested subfields:
   if (depth + 2 === config.maxDepth) {
     nested = nested.filter(field => fieldHasLeafs(field, schema))
@@ -294,7 +294,7 @@ function getRandomFields (
   const pickNested = random(config) <= config.depthProbability
 
   // if we decide to pick nested, choose one nested field (if one exists)...
-  if (pickNested && nested.length > 0 && !nextIsLeaf) {
+  if ((pickNested && nested.length > 0 && !nextIsLeaf) || (depth === 0 && config.pickNestedQueryField)) {
     let nestedIndex = Math.floor(random(config) * nested.length)
     results.push(nested[nestedIndex])
     nested.splice(nestedIndex, 1)
