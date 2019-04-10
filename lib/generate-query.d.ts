@@ -8,6 +8,9 @@ export declare type Configuration = {
     argumentsToIgnore?: string[];
     argumentsToConsider?: string[];
     providerMap?: ProviderMap;
+    considerInterfaces?: boolean;
+    considerUnions?: boolean;
+    seed?: number;
 };
 export declare function getTypeName(type: TypeNode): string;
 export declare function generateRandomMutation(schema: GraphQLSchema, config?: Configuration): {
@@ -15,10 +18,12 @@ export declare function generateRandomMutation(schema: GraphQLSchema, config?: C
     variableValues: {
         [varName: string]: any;
     };
+    seed: number;
 };
 export declare function generateRandomQuery(schema: GraphQLSchema, config?: Configuration): {
     queryDocument: DocumentNode;
     variableValues: {
         [varName: string]: any;
     };
+    seed: number;
 };
