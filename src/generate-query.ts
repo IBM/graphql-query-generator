@@ -13,7 +13,8 @@ import {
   VariableDefinitionNode,
   InputValueDefinitionNode,
   Kind,
-  InlineFragmentNode
+  InlineFragmentNode,
+  GraphQLObjectType
 } from 'graphql'
 import { ProviderMap, provideVaribleValue } from './provide-variables'
 
@@ -24,7 +25,9 @@ export type Configuration = {
   ignoreOptionalArguments?: boolean,
   argumentsToIgnore?: string[],
   argumentsToConsider?: string[],
-  providerMap?: ProviderMap
+  providerMap?: ProviderMap,
+  considerInterfaces?: boolean,
+  considerUnions?: boolean
 }
 
 const DEFAULT_CONFIG : Configuration = {
@@ -33,7 +36,9 @@ const DEFAULT_CONFIG : Configuration = {
   maxDepth: 5,
   ignoreOptionalArguments: true,
   argumentsToIgnore: [],
-  argumentsToConsider: []
+  argumentsToConsider: [],
+  considerInterfaces: false,
+  considerUnions: false
 }
 
 // default loc:
@@ -148,6 +153,21 @@ function isNestedField (field: FieldDefinitionNode, schema: GraphQLSchema) : boo
       || ast.kind === Kind.UNION_TYPE_DEFINITION)
 }
 
+function isObjectField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
+  const ast = schema.getType(getTypeName(field.type)).astNode
+  return typeof ast !== 'undefined' && ast.kind === Kind.OBJECT_TYPE_DEFINITION 
+}
+
+function isInterfaceField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
+  const ast = schema.getType(getTypeName(field.type)).astNode
+  return typeof ast !== 'undefined' && ast.kind === Kind.INTERFACE_TYPE_DEFINITION
+}
+
+function isUnionField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
+  const ast = schema.getType(getTypeName(field.type)).astNode
+  return typeof ast !== 'undefined' && ast.kind === Kind.UNION_TYPE_DEFINITION
+}
+
 function considerArgument (arg: InputValueDefinitionNode, config: Configuration) : boolean {
   const isArgumentToIgnore = config.argumentsToIgnore.includes(arg.name.value)
   const isArgumentToConsider = config.argumentsToConsider.includes(arg.name.value)
@@ -183,12 +203,22 @@ function considerArgument (arg: InputValueDefinitionNode, config: Configuration)
 
 function fieldHasLeafs (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
-  if (ast.kind === Kind.OBJECT_TYPE_DEFINITION) {
+  if (ast.kind === Kind.OBJECT_TYPE_DEFINITION || ast.kind === Kind.INTERFACE_TYPE_DEFINITION) {
     return ast.fields.some(child => {
       const childAst = schema.getType(getTypeName(child.type)).astNode
       return typeof childAst === 'undefined' ||
         childAst.kind === Kind.SCALAR_TYPE_DEFINITION
     })
+  } else if (ast.kind === Kind.UNION_TYPE_DEFINITION) {
+    return ast.types.some((child => {
+      let unionNamedTypes = (schema.getType(child.name.value) as GraphQLObjectType).astNode.fields
+    
+      return unionNamedTypes.some(child => {
+        const childAst = schema.getType(getTypeName(child.type)).astNode
+        return typeof childAst === 'undefined' ||
+          childAst.kind === Kind.SCALAR_TYPE_DEFINITION
+      })
+    }))
   }
   return false
 }
@@ -201,13 +231,62 @@ function getRandomFields (
 ) : ReadonlyArray<FieldDefinitionNode> {
   const results = []
 
-  let nested = fields.filter(field => isNestedField(field, schema))
+  let nested 
+  let flat
+  if (config.considerInterfaces && config.considerUnions) {
+    nested = fields.filter((field) => {
+      return isObjectField(field, schema) || isInterfaceField(field, schema) || isUnionField(field, schema)
+    })
+
+    flat = fields.filter((field) => {
+      return !(isObjectField(field, schema) || isInterfaceField(field, schema) || isUnionField(field, schema))
+    })
+
+  } else if (config.considerInterfaces! && config.considerUnions) {
+    fields = fields.filter((field => {
+      return !isInterfaceField(field, schema)
+    }))
+
+    nested = fields.filter((field) => {
+      return isObjectField(field, schema) || isUnionField(field, schema) 
+    })
+
+    flat = fields.filter((field) => {
+      return !(isObjectField(field, schema) || isUnionField(field, schema))
+    })
+
+  } else if (config.considerInterfaces && config.considerUnions!) {
+    fields = fields.filter((field => {
+      return !isUnionField(field, schema)
+    }))
+
+    nested = fields.filter((field) => {
+      return isObjectField(field, schema) || isInterfaceField(field, schema) 
+    })
+
+    flat = fields.filter((field) => {
+      return !(isObjectField(field, schema) || isInterfaceField(field, schema))
+    })
+
+  } else {
+    fields = fields.filter((field => {
+      return !(isInterfaceField(field, schema) || isUnionField(field, schema))
+    }))
+
+    nested = fields.filter((field) => {
+      return isObjectField(field, schema) 
+    })
+
+    flat = fields.filter((field) => {
+      return !isObjectField(field, schema)
+    })
+  }
+
   // filter out fields that only have nested subfields:
   if (depth + 2 === config.maxDepth) {
     nested = nested.filter(field => fieldHasLeafs(field, schema))
   }
   const nextIsLeaf = depth + 1 === config.maxDepth
-  const flat = fields.filter(field => !isNestedField(field, schema))
   const pickNested = Math.random() <= config.depthProbability
 
   // if we decide to pick nested, choose one nested field (if one exists)...

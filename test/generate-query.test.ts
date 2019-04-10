@@ -59,7 +59,9 @@ test(`Avoid picking field with only nested subfields when approaching max depth`
   const config : Configuration = {
     breadthProbability: 1,
     depthProbability: 1,
-    maxDepth: 3
+    maxDepth: 3,
+    considerInterfaces: true,
+    considerUnions: true
   }
 
   const {queryDocument, variableValues} = generateRandomQuery(schema, config)
@@ -79,7 +81,9 @@ test(`Obtain random query from GitHub schema`, () => {
     depthProbability: 0.5,
     maxDepth: 10,
     ignoreOptionalArguments: true,
-    argumentsToConsider: ['first']
+    argumentsToConsider: ['first'],
+    considerInterfaces: true,
+    considerUnions: true
   }
 
   const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
@@ -103,7 +107,9 @@ test(`Provide custom provider map for GitHub schema`, () => {
     maxDepth: 7,
     ignoreOptionalArguments: true,
     argumentsToConsider: ['first'],
-    providerMap: GITHUB_PROVIDERS
+    providerMap: GITHUB_PROVIDERS,
+    considerInterfaces: true,
+    considerUnions: true
   }
 
   const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
