@@ -235,6 +235,7 @@ function getRandomFields (
 ) : ReadonlyArray<FieldDefinitionNode> {
   const results = []
 
+  // create lists of nested and flat fields to pick from:
   let nested 
   let flat
   if (config.considerInterfaces && config.considerUnions) {
@@ -292,12 +293,9 @@ function getRandomFields (
   }
   const nextIsLeaf = depth + 1 === config.maxDepth
 
-  let pickNested 
-  if (typeof config.depthProbability === 'number') {
-    pickNested = random(config) <= config.depthProbability
-  } else {
-    pickNested = random(config) <= config.depthProbability(depth)
-  }
+  const pickNested = typeof config.depthProbability === 'number'
+    ? random(config) <= config.depthProbability
+    : random(config) <= config.depthProbability(depth)
 
   // if we decide to pick nested, choose one nested field (if one exists)...
   if ((pickNested && nested.length > 0 && !nextIsLeaf) || (depth === 0 && config.pickNestedQueryField)) {
@@ -307,28 +305,22 @@ function getRandomFields (
 
     // ...and possibly choose more:
     nested.forEach(field => {
-      if (typeof config.breadthProbability === 'number') {
-        if (random(config) <= config.breadthProbability) {
-          results.push(field)
-        }
-      } else {
-        if (random(config) <= config.breadthProbability(depth)) {
-          results.push(field)
-        }
+      const pickNested = typeof config.breadthProbability === 'number'
+        ? random(config) <= config.breadthProbability
+        : random(config) <= config.breadthProbability(depth)
+      if (pickNested) {
+        results.push(field)
       }
     })
   }
 
   // pick flat fields based on the breadth probability:
   flat.forEach(field => {
-    if (typeof config.breadthProbability === 'number') {
-      if (random(config) <= config.breadthProbability) {
-        results.push(field)
-      }
-    } else {
-      if (random(config) <= config.breadthProbability(depth)) {
-        results.push(field)
-      }
+    const pickFlat = typeof config.breadthProbability === 'number'
+      ? random(config) <= config.breadthProbability
+      : random(config) <= config.breadthProbability(depth)
+    if (pickFlat) {
+      results.push(field)
     }
   })
 
@@ -336,8 +328,8 @@ function getRandomFields (
   if (results.length === 0) {
     // if the next level is not the last, we can choose ANY field:
     if (!nextIsLeaf) {
-      const forcedCleanIndex = Math.floor(random(config) * fields.length)
-      results.push(fields[forcedCleanIndex])
+      const forcedIndex = Math.floor(random(config) * fields.length)
+      results.push(fields[forcedIndex])
     // ...otherwise, we HAVE TO choose a flat field:
     } else if (flat.length > 0) {
       const forcedFlatIndex = Math.floor(random(config) * flat.length)
