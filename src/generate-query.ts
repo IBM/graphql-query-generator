@@ -22,8 +22,8 @@ import * as seedrandom from 'seedrandom'
 import { ProviderMap, provideVaribleValue } from './provide-variables'
 
 export type Configuration = {
-  depthProbability?: number,
-  breadthProbability?: number,
+  depthProbability?: number | ((depth: number) => number),
+  breadthProbability?: number | ((depth: number) => number),
   maxDepth?: number,
   ignoreOptionalArguments?: boolean,
   argumentsToIgnore?: string[],
@@ -291,7 +291,13 @@ function getRandomFields (
     nested = nested.filter(field => fieldHasLeafs(field, schema))
   }
   const nextIsLeaf = depth + 1 === config.maxDepth
-  const pickNested = random(config) <= config.depthProbability
+
+  let pickNested 
+  if (typeof config.depthProbability === 'number') {
+    pickNested = random(config) <= config.depthProbability
+  } else {
+    pickNested = random(config) <= config.depthProbability(depth)
+  }
 
   // if we decide to pick nested, choose one nested field (if one exists)...
   if ((pickNested && nested.length > 0 && !nextIsLeaf) || (depth === 0 && config.pickNestedQueryField)) {
@@ -301,16 +307,28 @@ function getRandomFields (
 
     // ...and possibly choose more:
     nested.forEach(field => {
-      if (random(config) <= config.breadthProbability) {
-        results.push(field)
+      if (typeof config.breadthProbability === 'number') {
+        if (random(config) <= config.breadthProbability) {
+          results.push(field)
+        }
+      } else {
+        if (random(config) <= config.breadthProbability(depth)) {
+          results.push(field)
+        }
       }
     })
   }
 
   // pick flat fields based on the breadth probability:
   flat.forEach(field => {
-    if (random(config) <= config.breadthProbability) {
-      results.push(field)
+    if (typeof config.breadthProbability === 'number') {
+      if (random(config) <= config.breadthProbability) {
+        results.push(field)
+      }
+    } else {
+      if (random(config) <= config.breadthProbability(depth)) {
+        results.push(field)
+      }
     }
   })
 
@@ -497,7 +515,11 @@ function getSelectionSetAndVars(
 
     // randomly select named types from the union
     let pickObjectsImplementingInterface = objectsImplementingInterface.filter(() => {
-      return random(config) <= config.breadthProbability
+      if (typeof config.breadthProbability === 'number') {
+        return random(config) <= config.breadthProbability
+      } else {
+        return random(config) <= config.breadthProbability(depth)
+      }
     })
 
     // if no named types are selected, select any one
@@ -557,7 +579,11 @@ function getSelectionSetAndVars(
 
     // randomly select named types from the union
     let pickUnionNamedTypes = unionNamedTypes.filter(() => {
-      return random(config) <= config.breadthProbability
+      if (typeof config.breadthProbability === 'number') {
+        return random(config) <= config.breadthProbability
+      } else {
+        return random(config) <= config.breadthProbability(depth)
+      }
     })
 
     // if no named types are selected, select any one

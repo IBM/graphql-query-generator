@@ -1,8 +1,8 @@
 import { DocumentNode, GraphQLSchema, TypeNode } from 'graphql';
 import { ProviderMap } from './provide-variables';
 export declare type Configuration = {
-    depthProbability?: number;
-    breadthProbability?: number;
+    depthProbability?: number | ((depth: number) => number);
+    breadthProbability?: number | ((depth: number) => number);
     maxDepth?: number;
     ignoreOptionalArguments?: boolean;
     argumentsToIgnore?: string[];
