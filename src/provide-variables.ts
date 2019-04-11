@@ -5,9 +5,13 @@ import {
 import { Configuration } from './generate-query'
 
 type Primitive = string | boolean | number | Date
+type Variables = {
+  [varName: string] : any
+}
+type ProviderFunction = (variables: Variables, argType: GraphQLNamedType) => any
 
 export type ProviderMap = {
-  [varNameQuery: string] : Primitive | Object | Array<any> | Function
+  [varNameQuery: string] : Primitive | Object | Array<any> | ProviderFunction
 }
 
 function doMatch (a: string, b: string) : boolean {
@@ -79,7 +83,7 @@ export function provideVaribleValue (
   varName: string,
   type: GraphQLNamedType,
   config: Configuration,
-  providedValues: {[varName: string] : any}
+  providedValues: Variables
 ) {
   const provider = getProvider(varName, type, config.providerMap)
 
@@ -87,7 +91,7 @@ export function provideVaribleValue (
   if (isEnumType(type)) {
     varValue = getRandomEnum(type)
   } else if (typeof provider === 'function') {
-    varValue = provider(providedValues)
+    varValue = (provider as ProviderFunction)(providedValues, type)
   } else {
     varValue = provider
   }
