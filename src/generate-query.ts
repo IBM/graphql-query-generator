@@ -19,7 +19,7 @@ import {
 
 import * as seedrandom from 'seedrandom'
 
-import { ProviderMap, provideVariableValue } from './provide-variables'
+import { ProviderMap, getProviderValue, isEnumType, getRandomEnum } from './provide-variables'
 
 export type Configuration = {
   depthProbability?: number | ((depth: number) => number),
@@ -387,31 +387,86 @@ function getArgsAndVars (
   variableDefinitionsMap: {[varName: string] : VariableDefinitionNode},
   variableValues: {[varName: string] : any}
 } {
-  // TODO: if type__field is matched by a provider, return return corresponding arguments and values.
-  // Question: is there a match for type__field??? If yes:
-  //  Option 1: this function only considers the provider for type__field.
-  //    Query__user provider returns: {name: "ibm"}
-  //    Query__repository: 
-  //  Option 2: this function first considers the provider for type__field, and then possible further provider for type__field__arg.
-
   const args : ArgumentNode[] = []
+
   const variableDefinitionsMap : {[varName: string] : VariableDefinitionNode} = {}
-  const variableValues : {[varName: string] : any} = {}
-  allArgs
-    .filter(arg => considerArgument(arg, config))
-    .forEach(arg => {
-      const varName = `${nodeName}__${fieldName}__${arg.name.value}`
-      args.push(getVariable(arg.name.value, varName))
-      variableDefinitionsMap[varName] = getVariableDefinition(varName, arg.type)
+  const requiredArguments = allArgs.filter(arg => considerArgument(arg, config))
+  requiredArguments.forEach((arg) => {
+    const varName = `${nodeName}__${fieldName}__${arg.name.value}`
+    args.push(getVariable(arg.name.value, varName))
+    variableDefinitionsMap[varName] = getVariableDefinition(varName, arg.type)
+  })
+
+  // If there is no providerMap, then just create a query with null variables
+  if (config.providerMap) {
+    const typeFieldName = `${nodeName}__${fieldName}`
+
+    // Check for type__field provider
+    let providedVariableValues = getProviderValue(
+      typeFieldName,
+      config,
+      providedValues
+    ) as {[varName: string] : any}
+
+    // Map to full type__field__argument provider name
+    if (providedVariableValues) {
+      const temp = {}
+      Object.entries(providedVariableValues).forEach(([argName, value]) => {
+        const varName = `${typeFieldName}__${argName}`
+
+        // Make sure it is a required argument (provider can provide more that necessary)
+        if (Object.keys(variableDefinitionsMap).includes(varName)) {
+          temp[`${typeFieldName}__${argName}`] = value
+        }
+      })
+
+      providedVariableValues = temp
+    }
+
+    const variableValues : {[varName: string] : any} = providedVariableValues ? providedVariableValues : {}
+
+    // Check for type__field__argument providers (and overwrite if applicable)
+    requiredArguments.forEach(arg => {
+      const varName = `${typeFieldName}__${arg.name.value}`
       const argType = schema.getType(getTypeName(arg.type))
-      variableValues[varName] = provideVariableValue(
-        varName,
-        argType,
-        config,
-        {...variableValues, ...providedValues}
-      )
+
+      if (isEnumType(argType)) {
+        variableValues[varName] = getRandomEnum(argType)
+      } else {
+        const providedValue = getProviderValue(
+          varName,
+          config,
+          {...variableValues, ...providedValues},
+          argType
+        ) as any
+
+        if (providedValue) {
+          variableValues[varName] = providedValue
+        } else if (!variableValues[varName]) {
+          throw new Error(`No provider found for "${varName}" in ` +
+            `${Object.keys(config.providerMap).join(', ')}. ` +
+            `Consider applying wildcard provider with "*__*" or "*__*__*"`)
+        }
+      }
     })
-  return { args, variableDefinitionsMap, variableValues }
+
+    return { args, variableDefinitionsMap, variableValues }
+
+  // This is a special case allowing the user to generate a query without caring for argument values
+  } else {
+    const variableValues : {[varName: string] : any} = {}
+
+    requiredArguments.forEach(arg => {
+      const varName = `${nodeName}__${fieldName}__${arg.name.value}`
+      variableValues[varName] = null
+    })
+
+    return {
+      args, 
+      variableDefinitionsMap, 
+      variableValues
+    }
+  }
 }
     
 function getSelectionSetAndVars(
@@ -630,80 +685,6 @@ function getSelectionSetAndVars(
             variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
             variableValues = {...variableValues, ...res.variableValues}
 
-            // // Make sure selections do not have overlapping field names/aliases
-            // selectionSet.selections.forEach((selectionNode) => {      
-            //   if (selectionNode.kind === Kind.FIELD) {
-            //     let fieldName = selectionNode.name.value
-
-            //     // Get the type of the field
-            //     // Can be nonnullable
-            //     let nextType = type.fields.find((fd) => {
-            //       return fd.name.value === fieldName
-            //     }).type
-
-            //     // See if this field name/alias has been encountered before
-            //     if (fieldName in fieldNames) {
-            //       // See if the type matches the stored type
-            //       if (fieldNames[fieldName].stringifiedPreferredType !== JSON.stringify(nextType)) {
-
-            //         // Add alias
-            //         selectionNode = {...selectionNode, ...{alias: {
-            //           kind: Kind.NAME,
-            //           value: `${fieldName}${fieldNames[fieldName].aliasNumber++}`
-            //         }}}
-            //       }
-
-            //     // This field name/alias has not been encountered before
-            //     } else {
-            //       // Store the field name
-            //       fieldNames[fieldName] = {
-            //         stringifiedPreferredType: JSON.stringify(nextType),
-            //         aliasNumber: 2
-            //       }
-            //     }
-
-            //   } else if (selectionNode.kind === Kind.INLINE_FRAGMENT) {
-            //     selectionNode.selectionSet.selections.forEach((fragSelectionNode) => {
-
-            //       if (fragSelectionNode.kind === Kind.FIELD) {
-            //         // Get the type of the field
-            //         // Can be nonnullable
-            //         let nextType = type.fields.find((fd) => {
-            //           return fd.name.value === fieldName
-            //         }).type
-
-            //         // See if this field name/alias has been encountered before
-            //         if (fieldName in fieldNames) {
-            //           // See if the type matches the stored type
-            //           if (fieldNames[fieldName].stringifiedPreferredType !== JSON.stringify(nextType)) {
-
-            //             // Add alias
-            //             selectionNode = {...selectionNode, ...{alias: {
-            //               kind: Kind.NAME,
-            //               value: `${fieldName}${fieldNames[fieldName].aliasNumber++}`
-            //             }}}
-            //           }
-
-            //         // This field name/alias has not been encountered before
-            //         } else {
-            //           // Store the field name
-            //           fieldNames[fieldName] = {
-            //             stringifiedPreferredType: JSON.stringify(nextType),
-            //             aliasNumber: 2
-            //           }
-            //         }
-            //       } else {
-            //         // Ignore because will not affect this name space
-            //       }
-            //     })
-
-            //   } else {
-            //     throw Error(`There should only be fields or inline fragments ` + 
-            //       `in the selectionSet but found: ` + 
-            //       `"${JSON.stringify(selectionNode, null, 2)}"`, )
-            //   }
-            // })
-
             let fragment : InlineFragmentNode = {
               kind: Kind.INLINE_FRAGMENT,
               typeCondition: {
@@ -837,13 +818,6 @@ export function generateRandomQuery (
     nodeFactor: 1,
     typeCount: 0,
     resolveCount: 0
-  }
-
-  // provide default providerMap:
-  if (typeof finalConfig.providerMap !== 'object') {
-    finalConfig.providerMap = {
-      '*__*__*': null
-    }
   }
 
   const {

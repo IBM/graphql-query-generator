@@ -8,7 +8,9 @@ type Primitive = string | boolean | number | Date
 type Variables = {
   [varName: string] : any
 }
-type ProviderFunction = (variables: Variables, argType: GraphQLNamedType) => any
+
+type ProviderFunction = (variables: Variables, argType?: GraphQLNamedType) => any | // For type__field__argument providers
+  { [argumentName: string]: any } // For type__field providers
 
 export type ProviderMap = {
   [varNameQuery: string] : Primitive | Object | Array<any> | ProviderFunction
@@ -25,45 +27,40 @@ export function matchVarName (query: string, candidates: string[]) : string {
   }
 
   const queryParts = query.split(/(?<!__)__/g)
-  if (queryParts.length !== 3) {
+  if (!(queryParts.length === 2 || queryParts.length === 3)) {
     throw new Error(`Invalid variable name query: ${query}`)
   }
+
   for (let candidate of candidates) {
     const candidateParts = candidate.split(/(?<!__)__/g)
-    if (candidateParts.length !== 3) {
+    if (!(candidateParts.length === 2 || candidateParts.length === 3)) {
       throw new Error(`Invalid variable name: ${candidate}`)
     }
-    const match = candidateParts.every((candPart, i) => {
-      return doMatch(candPart, queryParts[i])
-    })
-    if (match) {
-      return candidate
+
+    if (candidateParts.length === queryParts.length) {
+      const match = candidateParts.every((candPart, i) => {
+        return doMatch(candPart, queryParts[i])
+      })
+      if (match) {
+        return candidate
+      }
     }
   }
 
   return null
 }
 
-function getProvider (varName: string, type: GraphQLNamedType, providerMap: ProviderMap) {
-  // case: no providers:
-  if (typeof providerMap === 'undefined') {
-    throw new Error(`No provider found for "${varName}" because provider map ` +
-    `is undefined.`)
-  }
-
+function getProvider (varName: string, providerMap: ProviderMap) {
   const providerKey = matchVarName(varName, Object.keys(providerMap))
 
-  // throw error if no provider was found:
-  if (!providerKey && !isEnumType(type)) {
-    throw new Error(`No provider found for "${varName}" in ` +
-      `${Object.keys(providerMap).join(', ')}. ` +
-      `Consider applying wildcard provider with "*__*__*"`)
+  if (providerKey) {
+    return providerMap[providerKey]
+  } else {
+    return null
   }
-
-  return providerMap[providerKey]
 }
 
-function getRandomEnum (type: GraphQLNamedType) {
+export function getRandomEnum (type: GraphQLNamedType) {
   const typeDef = type.astNode
   if (typeof typeDef !== 'undefined' && typeDef.kind === Kind.ENUM_TYPE_DEFINITION) {
     let value = typeDef.values[Math.floor(Math.random() * typeDef.values.length)]
@@ -71,7 +68,7 @@ function getRandomEnum (type: GraphQLNamedType) {
   }
 }
 
-function isEnumType (type: GraphQLNamedType) : boolean {
+export function isEnumType (type: GraphQLNamedType) : boolean {
   const typeDef = type.astNode
   if (typeof typeDef !== 'undefined' && typeDef.kind === Kind.ENUM_TYPE_DEFINITION) {
     return true
@@ -79,22 +76,22 @@ function isEnumType (type: GraphQLNamedType) : boolean {
   return false
 }
 
-export function provideVariableValue (
+export function getProviderValue (
   varName: string,
-  type: GraphQLNamedType,
   config: Configuration,
-  providedValues: Variables
+  providedValues: Variables,
+  argType?: GraphQLNamedType
 ) {
-  const provider = getProvider(varName, type, config.providerMap)
+  // If no providerMap was provided, then just create a query with no argument values
+  if (config.providerMap) {
+    const provider = getProvider(varName, config.providerMap)
 
-  let varValue = null
-  if (isEnumType(type)) {
-    varValue = getRandomEnum(type)
-  } else if (typeof provider === 'function') {
-    varValue = (provider as ProviderFunction)(providedValues, type)
+    if (typeof provider === 'function') {
+      return (provider as ProviderFunction)(providedValues, argType)
+    } else {
+      return provider
+    }
   } else {
-    varValue = provider
+    return null
   }
-
-  return varValue
 }

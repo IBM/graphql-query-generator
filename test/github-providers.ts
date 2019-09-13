@@ -46,10 +46,14 @@ export const GITHUB_PROVIDERS = {
   '*__codeOfConduct__key': 'citizen_code_of_conduct', // or 'contributor_covenant'
   '*__gist__name': 'index.html',
   '*__*__number': 1,
-  '*__search__query': 'test',
-  '*__search__type': getRandomValueFromArray(['ISSUE', 'REPOSITORY', 'USER']),
-  '*__repository__name': getRandomRepositoryName,
-  '*__repository__owner': getRandomUserLogin,
+  '*__search': {
+    'query': 'test',
+    'type': getRandomValueFromArray(['ISSUE', 'REPOSITORY', 'USER'])
+  },
+  '*__repository': {
+    'name': getRandomRepositoryName(),
+    'owner': getRandomUserLogin()
+  },
   '*__marketplaceListing__slug': 'wakatime', // see 'https://github.com/marketplace',
   '*__marketplaceCategory__slug': getRandomMarketplaceSlug,
   '*__user__login': getRandomUserLogin,

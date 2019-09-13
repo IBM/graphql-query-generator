@@ -28,6 +28,10 @@ test(`Obtain random query from example schema`, () => {
   }
 
   const {queryDocument, variableValues} = generateRandomQuery(schema, config)
+
+  // console.log(print(queryDocument))
+  // console.log(variableValues)
+
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
   const opDef = getOperationDefinition(queryDocument)
@@ -161,7 +165,7 @@ test(`Missing provider leads to error`, () => {
     }
    */
 
-  expect(() => generateRandomQuery(schemaGitHub, config)).toThrowError(`No provider found for "Query__codeOfConduct__key" in blub__blib__blab. Consider applying wildcard provider with "*__*__*"`)
+  expect(() => generateRandomQuery(schemaGitHub, config)).toThrowError(`No provider found for "Query__codeOfConduct__key" in blub__blib__blab. Consider applying wildcard provider with "*__*" or "*__*__*"`)
 })
 
 test(`Provide custom provider map for GitHub schema`, () => {
@@ -188,6 +192,230 @@ test(`Provide custom provider map for GitHub schema`, () => {
   expect(Object.keys(opDef.variableDefinitions).length)
     .toEqual(Object.keys(variableValues).length)
   expect(errors).toEqual([])
+})
+
+test(`Utilize type__field provider`, () => {
+  const config : Configuration = {
+    breadthProbability: 0.2,
+    depthProbability: 0.3,
+    maxDepth: 7,
+    ignoreOptionalArguments: true,
+    argumentsToConsider: ['first'],
+    providerMap: GITHUB_PROVIDERS,
+    considerInterfaces: true,
+    considerUnions: true,
+    seed: 0.2805754930509623
+  }
+
+  /**
+   * Target query:
+   * 
+   *  query RandomQuery($Repository__releases__first: Int, $Project__columns__first: Int, $Repository__projects__first: Int, $RepositoryOwner__pinnedRepositories__first: Int, $PullRequest__assignees__first: Int, $PullRequest__
+participants__first: Int, $ReactionGroup__users__first: Int, $Reactable__reactions__first: Int, $Issue__comments__first: Int, $Issue__reactions__first: Int, $Issue__timeline__first: Int, $Repository__pullRequest__number: Int!, $Query__repository__name: String!, $Query__repository__owner: String!) {
+      repository(name: $Query__repository__name, owner: $Query__repository__owner) {
+        releases(first: $Repository__releases__first) {
+          totalCount
+        }
+        projects(first: $Repository__projects__first) {
+          nodes {
+            columns(first: $Project__columns__first) {
+              pageInfo {
+                hasNextPage
+              }
+            }
+            updatedAt
+            url
+          }
+        }
+        pullRequest(number: $Repository__pullRequest__number) {
+          headRepositoryOwner {
+            pinnedRepositories(first: $RepositoryOwner__pinnedRepositories__first) {
+              edges {
+                cursor
+              }
+            }
+            avatarUrl
+            ... on User {
+              bio
+              companyHTML
+              createdAt
+              id
+              isSiteAdmin
+              location
+              login
+              updatedAt
+              websiteUrl
+            }
+          }
+          assignees(first: $PullRequest__assignees__first) {
+            nodes {
+              bioHTML
+              isBountyHunter
+              isCampusExpert
+            }
+          }
+          headRef {
+            repository {
+              description
+              diskUsage
+              viewerHasStarred
+              viewerSubscription
+            }
+          }
+          mergeCommit {
+            abbreviatedOid
+            changedFiles
+            deletions
+            id
+            treeResourcePath
+            treeUrl
+            url
+            viewerSubscription
+          }
+          mergedBy {
+            login
+            ... on Bot {
+              url
+            }
+          }
+          participants(first: $PullRequest__participants__first) {
+            totalCount
+          }
+          potentialMergeCommit {
+            id
+            messageBodyHTML
+            oid
+            treeResourcePath
+          }
+          reactionGroups {
+            users(first: $ReactionGroup__users__first) {
+              edges {
+                node {
+                  avatarUrl
+                  bioHTML
+                  companyHTML
+                  databaseId
+                  isBountyHunter
+                }
+                cursor
+              }
+            }
+            subject {
+              reactions(first: $Reactable__reactions__first) {
+                totalCount
+              }
+              reactionGroups {
+                users(first: $ReactionGroup__users__first) {
+                  totalCount
+                }
+                content
+                viewerHasReacted
+              }
+              ... on Issue {
+                reactionGroups2: reactionGroups {
+                  subject {
+                    databaseId
+                    id
+                    viewerCanReact
+                    ... on PullRequest {
+                      additions
+                      baseRefName
+                      createdViaEmail
+                      merged
+                      mergedAt
+                      resourcePath
+                      viewerCanSubscribe
+                    }
+                    ... on IssueComment {
+                      bodyHTML
+                      createdViaEmail2: createdViaEmail
+                      publishedAt
+                      viewerCanDelete
+                    }
+                    ... on PullRequestReviewComment {
+                      authorAssociation
+                      createdAt
+                      createdViaEmail3: createdViaEmail
+                      databaseId2: databaseId
+                      url
+                    }
+                  }
+                }
+                comments(first: $Issue__comments__first) {
+                  totalCount
+                }
+                reactions2: reactions(first: $Issue__reactions__first) {
+                  totalCount
+                  viewerHasReacted
+                }
+                timeline(first: $Issue__timeline__first) {
+                  pageInfo {
+                    startCursor
+                  }
+                  nodes {
+                    ... on UnlockedEvent {
+                      id
+                    }
+                  }
+                }
+                closedAt
+                id
+                lastEditedAt
+                publishedAt
+                title
+              }
+            }
+            viewerHasReacted
+          }
+          repository {
+            forkCount
+            hasWikiEnabled
+            isLocked
+            lockReason
+            name
+            projectsUrl
+            rebaseMergeAllowed
+            shortDescriptionHTML
+            viewerCanSubscribe
+            viewerSubscription
+          }
+          suggestedReviewers {
+            isCommenter
+          }
+          authorAssociation
+          baseRefName
+          baseRefOid
+          bodyHTML
+          bodyText
+          changedFiles
+          mergedAt
+          publishedAt
+          state
+          viewerCanApplySuggestion
+          viewerCanSubscribe
+          viewerCannotUpdateReasons
+        }
+        createdAt
+        isArchived
+        isLocked
+        mergeCommitAllowed
+        nameWithOwner
+        pushedAt
+        viewerHasStarred
+      }
+    }
+   */
+
+  const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
+  const opDef = getOperationDefinition(queryDocument)
+  const errors = validate(schemaGitHub, queryDocument)
+
+  expect(queryDocument).toBeDefined()
+  expect(print(queryDocument) === '').toEqual(false)
+  expect(Object.keys(opDef.variableDefinitions).length)
+    .toEqual(Object.keys(variableValues).length)
+  expect(errors).toEqual([])
+  expect(print(queryDocument).trim().split(`\n`).length).toBe(193)
 })
 
 test(`Provided variables are passed to providers`, () => {
@@ -243,8 +471,8 @@ test(`Counts are as expected`, () => {
    */
 
   const {queryDocument, variableValues, typeCount, resolveCount, seed} = generateRandomQuery(schemaGitHub, config)
-  console.log(typeCount, resolveCount, seed)
-  console.log(print(queryDocument))
+  // console.log(typeCount, resolveCount, seed)
+  // console.log(print(queryDocument))
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
@@ -254,4 +482,3 @@ test(`Counts are as expected`, () => {
     .toEqual(Object.keys(variableValues).length)
   expect(errors).toEqual([])
 })
-
