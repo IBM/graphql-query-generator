@@ -218,3 +218,40 @@ test(`Provided variables are passed to providers`, () => {
   expect(errors).toEqual([])
   expect(variableValues['Query__repository__name'] != variableValues['Query__repository__owner']).toBeTruthy()
 })
+
+test(`Counts are as expected`, () => {
+  const config : Configuration = {
+    breadthProbability: 0.5,
+    depthProbability: 0.5,
+    maxDepth: 10,
+    ignoreOptionalArguments: true,
+    argumentsToConsider: ['first'],
+    considerInterfaces: true,
+    considerUnions: true,
+    seed: 5
+  }
+
+  /**
+   * Target query:
+   * 
+   * query RandomQuery($Query__codeOfConduct__key: String!) {
+      codeOfConduct(key: $Query__codeOfConduct__key) {
+        name
+        url
+      }
+    }
+   */
+
+  const {queryDocument, variableValues, typeCount, resolveCount, seed} = generateRandomQuery(schemaGitHub, config)
+  console.log(typeCount, resolveCount, seed)
+  console.log(print(queryDocument))
+  const opDef = getOperationDefinition(queryDocument)
+  const errors = validate(schemaGitHub, queryDocument)
+
+  expect(queryDocument).toBeDefined()
+  expect(print(queryDocument) === '').toEqual(false)
+  expect(Object.keys(opDef.variableDefinitions).length)
+    .toEqual(Object.keys(variableValues).length)
+  expect(errors).toEqual([])
+})
+

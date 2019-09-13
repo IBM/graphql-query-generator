@@ -27,4 +27,6 @@ export declare function generateRandomQuery(schema: GraphQLSchema, config?: Conf
         [varName: string]: any;
     };
     seed: number;
+    typeCount: number;
+    resolveCount: number;
 };

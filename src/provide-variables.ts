@@ -79,7 +79,7 @@ function isEnumType (type: GraphQLNamedType) : boolean {
   return false
 }
 
-export function provideVaribleValue (
+export function provideVariableValue (
   varName: string,
   type: GraphQLNamedType,
   config: Configuration,

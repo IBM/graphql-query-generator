@@ -19,7 +19,7 @@ import {
 
 import * as seedrandom from 'seedrandom'
 
-import { ProviderMap, provideVaribleValue } from './provide-variables'
+import { ProviderMap, provideVariableValue } from './provide-variables'
 
 export type Configuration = {
   depthProbability?: number | ((depth: number) => number),
@@ -36,8 +36,11 @@ export type Configuration = {
 }
 
 type InternalConfiguration = Configuration & {
-  seed: number,
+  seed: number
   nextSeed?: number
+  nodeFactor: number
+  typeCount: number
+  resolveCount: number
 }
 
 const DEFAULT_CONFIG : Configuration = {
@@ -365,6 +368,13 @@ function getVariable (argName: string, varName: string) : ArgumentNode {
   }
 }
 
+function getNextNodefactor (variableValues: {[name: string] : any}) : number {
+  if (typeof variableValues['first'] === 'number') {
+    variableValues['first']
+  }
+  return 1
+}
+
 function getArgsAndVars (
   allArgs: ReadonlyArray<InputValueDefinitionNode>,
   nodeName: string,
@@ -377,6 +387,13 @@ function getArgsAndVars (
   variableDefinitionsMap: {[varName: string] : VariableDefinitionNode},
   variableValues: {[varName: string] : any}
 } {
+  // TODO: if type__field is matched by a provider, return return corresponding arguments and values.
+  // Question: is there a match for type__field??? If yes:
+  //  Option 1: this function only considers the provider for type__field.
+  //    Query__user provider returns: {name: "ibm"}
+  //    Query__repository: 
+  //  Option 2: this function first considers the provider for type__field, and then possible further provider for type__field__arg.
+
   const args : ArgumentNode[] = []
   const variableDefinitionsMap : {[varName: string] : VariableDefinitionNode} = {}
   const variableValues : {[varName: string] : any} = {}
@@ -387,7 +404,7 @@ function getArgsAndVars (
       args.push(getVariable(arg.name.value, varName))
       variableDefinitionsMap[varName] = getVariableDefinition(varName, arg.type)
       const argType = schema.getType(getTypeName(arg.type))
-      variableValues[varName] = provideVaribleValue(
+      variableValues[varName] = provideVariableValue(
         varName,
         argType,
         config,
@@ -433,6 +450,12 @@ function getSelectionSetAndVars(
       let selectionSet : SelectionSetNode = undefined
       if (typeof nextNode !== 'undefined') {
         const res = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
+
+        // update counts and nodeFactor:
+        config.resolveCount += config.nodeFactor
+        config.nodeFactor *= getNextNodefactor(res.variableValues)
+        config.typeCount += config.nodeFactor
+
         selectionSet = res.selectionSet
         variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
         variableValues = {...variableValues, ...res.variableValues}
@@ -466,6 +489,12 @@ function getSelectionSetAndVars(
       let selectionSet : SelectionSetNode = undefined
       if (typeof nextNode !== 'undefined') {
         const res = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
+        
+        // update counts and nodeFactor:
+        config.resolveCount += config.nodeFactor
+        config.nodeFactor *= getNextNodefactor(res.variableValues)
+        config.typeCount += config.nodeFactor
+        
         selectionSet = res.selectionSet
         variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
         variableValues = {...variableValues, ...res.variableValues}
@@ -768,7 +797,10 @@ export function generateRandomMutation (
     ...config, 
     seed: typeof config.seed !== 'undefined'
       ? config.seed
-      : Math.random()
+      : Math.random(),
+    nodeFactor: 1,
+    typeCount: 0,
+    resolveCount: 0
   }
 
   // provide default providerMap:
@@ -801,7 +833,10 @@ export function generateRandomQuery (
     ...config, 
     seed: typeof config.seed !== 'undefined'
       ? config.seed
-      : Math.random()
+      : Math.random(),
+    nodeFactor: 1,
+    typeCount: 0,
+    resolveCount: 0
   }
 
   // provide default providerMap:
@@ -821,7 +856,9 @@ export function generateRandomQuery (
   return {
     queryDocument: getDocumentDefinition(definitions),
     variableValues,
-    seed: finalConfig.seed
+    seed: finalConfig.seed,
+    typeCount: finalConfig.typeCount,
+    resolveCount: finalConfig.resolveCount
   }
 }
 

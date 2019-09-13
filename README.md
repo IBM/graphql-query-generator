@@ -62,6 +62,14 @@ Whenever a randomly generated query or mutation requires an [argument](https://f
 <type>__<fieldName>__<argumentName>
 ```
 
+Alternatively, you can match using:
+
+```
+<type>__<fieldName>
+```
+
+In this case, the provider function returns an object where multiple arguments are present.
+
 The `providerMap` contains values or value producing functions for the variables in a query.
 
 The keys of the `providerMap` are either the exact name of the variable or a wildcard where either the `type`, `fieldName`, and/or `argumentName` are replaced by a `*`. For example, the key `*__*__limit` matches all variables for arguments of name `limit`, no matter for what field the argument is used or in which type. If no `providerMap` is passed, a default map `{'*__*__*': null}` is used, which provides a `null` value to all variables (Note: this can be problematic if an argument defines a [non-null](https://facebook.github.io/graphql/draft/#sec-Type-System.Non-Null) value).
