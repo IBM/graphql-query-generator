@@ -21,18 +21,15 @@ function getRandomMarketplaceSlug () {
 }
 
 function getRandomUserLogin () {
-  // TODO: return random user
   return 'erikwittern'
 }
 
 function getRandomLicenseKey () {
-  // TODO: return random license key
   return 'MIT'
 }
 
 function getRandomRepositoryName () {
-  // TODO
-  return 'oasgraph'
+  return 'openapi-to-graphql'
 }
 
 function getRandomValueFromArray<T> (array: T[]) : T {
@@ -43,7 +40,7 @@ function getRandomValueFromArray<T> (array: T[]) : T {
 
 export const GITHUB_PROVIDERS = {
   '*__*__first': 10,
-  '*__codeOfConduct__key': 'citizen_code_of_conduct', // or 'contributor_covenant'
+  '*__codeOfConduct__key': 'citizen_code_of_conduct',
   '*__gist__name': 'index.html',
   '*__*__number': 1,
   '*__search': {
@@ -54,23 +51,23 @@ export const GITHUB_PROVIDERS = {
     'name': getRandomRepositoryName(),
     'owner': getRandomUserLogin()
   },
-  '*__marketplaceListing__slug': 'wakatime', // see 'https://github.com/marketplace',
+  '*__marketplaceListing__slug': 'wakatime',
   '*__marketplaceCategory__slug': getRandomMarketplaceSlug,
   '*__user__login': getRandomUserLogin,
   '*__license__key': getRandomLicenseKey,
-  '*__organization__login': 'Facebook',
+  '*__organization__login': 'IBM',
   '*__topic__name': 'test',
   '*__ref__qualifiedName': '/ref/head/',
-  
-  '*__node__id': 'MDEwOlJlcG9zaXRvcnk1MjE2OTEz',
-  '*__nodes__ids': ['MDEwOlJlcG9zaXRvcnk1MjE2OTEz'],
+  '*__refs__refPrefix': '/ref/head/',
+  '*__node__id': 'abc',
+  '*__nodes__ids': ['abc'],
   '*__repositoryOwner__login': getRandomUserLogin,
-  '*__resource__url': 'https://github.com/strongloop/oasgraph',
+  '*__resource__url': 'https://github.com/ibm/openapi-to-graphql',
   '*__project__number': 1,
   'Organization__team__slug': 'oasgraph-maintainers',
   '*__issue__number': 1,
   '*__issueOrPullRequest__number': 1,
   'Repository__label__name': getRandomValueFromArray(['bug', 'duplicate', 'enhancement', 'good first issue', 'help wanted', 'invalid', 'question']),
   '*__pullRequest__number': 1,
-  '*__release__tagname': 'v0.14.0'
+  '*__release__tagname': 'v2.0.0'
 }

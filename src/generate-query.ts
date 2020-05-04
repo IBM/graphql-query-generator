@@ -55,7 +55,7 @@ const DEFAULT_CONFIG : Configuration = {
   pickNestedQueryField: false
 }
 
-// default loc:
+// Default location
 const loc : Location = {
   start: 0,
   end: 0,
@@ -86,7 +86,7 @@ function getQueryOperationDefinition (
     variableValues
   } = getSelectionSetAndVars(schema, node, config)
   
-  // throw error if query would be empty:
+  // Throw error if query would be empty
   if (selectionSet.selections.length === 0) {
     throw new Error(`Could not create query - no selection was possible at the root level`)
   }
@@ -118,7 +118,7 @@ function getMutationOperationDefinition(
     variableValues
   } = getSelectionSetAndVars(schema, node, config)
   
-  // throw error if mutation would be empty:
+  // Throw error if mutation would be empty
   if (selectionSet.selections.length === 0) {
     throw new Error(`Could not create mutation - no selection was possible at the root level`)
   }
@@ -180,7 +180,7 @@ function considerArgument (arg: InputValueDefinitionNode, config: InternalConfig
   const isMand = isMandatoryType(arg.type)
   const isOptional = !isMand
 
-  // checks for consistency:
+  // Check for consistency
   if (isMand && isArgumentToIgnore) {
     throw new Error(`Cannot ignore non-null argument "${arg.name.value}"`)
   }
@@ -189,7 +189,7 @@ function considerArgument (arg: InputValueDefinitionNode, config: InternalConfig
     throw new Error(`Cannot ignore AND consider argument "${arg.name.value}"`)
   }
 
-  // return value based on options:
+  // Return value based on options
   if (isMand) {
     return true
   }
@@ -238,7 +238,7 @@ function getRandomFields (
 ) : ReadonlyArray<FieldDefinitionNode> {
   const results = []
 
-  // create lists of nested and flat fields to pick from:
+  // Create lists of nested and flat fields to pick from
   let nested 
   let flat
   if (config.considerInterfaces && config.considerUnions) {
@@ -290,7 +290,7 @@ function getRandomFields (
     })
   }
 
-  // filter out fields that only have nested subfields:
+  // Filter out fields that only have nested subfields
   if (depth + 2 === config.maxDepth) {
     nested = nested.filter(field => fieldHasLeafs(field, schema))
   }
@@ -300,13 +300,13 @@ function getRandomFields (
     ? random(config) <= config.depthProbability
     : random(config) <= config.depthProbability(depth)
 
-  // if we decide to pick nested, choose one nested field (if one exists)...
+  // If we decide to pick nested, choose one nested field (if one exists)...
   if ((pickNested && nested.length > 0 && !nextIsLeaf) || (depth === 0 && config.pickNestedQueryField)) {
     let nestedIndex = Math.floor(random(config) * nested.length)
     results.push(nested[nestedIndex])
     nested.splice(nestedIndex, 1)
 
-    // ...and possibly choose more:
+    // ...and possibly choose more
     nested.forEach(field => {
       const pickNested = typeof config.breadthProbability === 'number'
         ? random(config) <= config.breadthProbability
@@ -317,7 +317,7 @@ function getRandomFields (
     })
   }
 
-  // pick flat fields based on the breadth probability:
+  // Pick flat fields based on the breadth probability
   flat.forEach(field => {
     const pickFlat = typeof config.breadthProbability === 'number'
       ? random(config) <= config.breadthProbability
@@ -327,9 +327,9 @@ function getRandomFields (
     }
   })
 
-  // ensure to pick at least one field:
+  // Ensure to pick at least one field
   if (results.length === 0) {
-    // if the next level is not the last, we can choose ANY field:
+    // If the next level is not the last, we can choose ANY field
     if (!nextIsLeaf) {
       const forcedIndex = Math.floor(random(config) * fields.length)
       results.push(fields[forcedIndex])
@@ -487,7 +487,7 @@ function getSelectionSetAndVars(
   let variableDefinitionsMap : {[variableName: string] : VariableDefinitionNode} = {}
   let variableValues : {[variableName: string] : any} = {}
 
-  // abort at leaf nodes:
+  // Abort at leaf nodes:
   if (depth === config.maxDepth) {
     return {
       selectionSet: undefined,
@@ -500,13 +500,13 @@ function getSelectionSetAndVars(
     let fields = getRandomFields(node.fields, config, schema, depth)
 
     fields.forEach(field => {
-      // recurse, if field has children:
+      // Recurse, if field has children:
       const nextNode = schema.getType(getTypeName(field.type)).astNode
       let selectionSet : SelectionSetNode = undefined
       if (typeof nextNode !== 'undefined') {
         const res = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
 
-        // update counts and nodeFactor:
+        // Update counts and nodeFactor:
         config.resolveCount += config.nodeFactor
         config.nodeFactor *= getNextNodefactor(res.variableValues)
         config.typeCount += config.nodeFactor
@@ -539,13 +539,13 @@ function getSelectionSetAndVars(
     let fields = getRandomFields(node.fields, config, schema, depth)
 
     fields.forEach(field => {
-      // recurse, if field has children:
+      // Recurse, if field has children:
       const nextNode = schema.getType(getTypeName(field.type)).astNode
       let selectionSet : SelectionSetNode = undefined
       if (typeof nextNode !== 'undefined') {
         const res = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
         
-        // update counts and nodeFactor:
+        // Update counts and nodeFactor:
         config.resolveCount += config.nodeFactor
         config.nodeFactor *= getNextNodefactor(res.variableValues)
         config.typeCount += config.nodeFactor
@@ -574,7 +574,7 @@ function getSelectionSetAndVars(
       })
     })
 
-        // get all objects that implement an interface
+        // Get all objects that implement an interface
         let objectsImplementingInterface = Object.values(schema.getTypeMap()).filter((namedType) => {
           if (namedType.astNode && namedType.astNode.kind === "ObjectTypeDefinition") {
             let interfaceNames = namedType.astNode.interfaces.map((interfaceNamedType) => {
@@ -589,7 +589,7 @@ function getSelectionSetAndVars(
           return false
         })
 
-    // randomly select named types from the union
+    // Randomly select named types from the union
     let pickObjectsImplementingInterface = objectsImplementingInterface.filter(() => {
       if (typeof config.breadthProbability === 'number') {
         return random(config) <= config.breadthProbability
@@ -598,7 +598,7 @@ function getSelectionSetAndVars(
       }
     })
 
-    // if no named types are selected, select any one
+    // If no named types are selected, select any one
     if (pickObjectsImplementingInterface.length === 0) {
       const forcedCleanIndex = Math.floor(random(config) * objectsImplementingInterface.length)
       pickObjectsImplementingInterface.push(objectsImplementingInterface[forcedCleanIndex])
@@ -608,7 +608,7 @@ function getSelectionSetAndVars(
       if (namedType.astNode) {
         let type = namedType.astNode
 
-        // unions can only contain objects
+        // Unions can only contain objects
         if (type.kind === Kind.OBJECT_TYPE_DEFINITION) {
 
             // Get selections
@@ -648,12 +648,12 @@ function getSelectionSetAndVars(
     })
 
   } else if (node.kind === Kind.UNION_TYPE_DEFINITION) {
-    // get the named types in the union
+    // Get the named types in the union
     let unionNamedTypes = node.types.map((namedTypeNode) => {
       return schema.getType(namedTypeNode.name.value)
     })
 
-    // randomly select named types from the union
+    // Randomly select named types from the union
     let pickUnionNamedTypes = unionNamedTypes.filter(() => {
       if (typeof config.breadthProbability === 'number') {
         return random(config) <= config.breadthProbability
@@ -662,20 +662,17 @@ function getSelectionSetAndVars(
       }
     })
 
-    // if no named types are selected, select any one
+    // If no named types are selected, select any one
     if (pickUnionNamedTypes.length === 0) {
       const forcedCleanIndex = Math.floor(random(config) * unionNamedTypes.length)
       pickUnionNamedTypes.push(unionNamedTypes[forcedCleanIndex])
     }
-    
-    // // Used to make ensure unique field names/aliases
-    // let fieldNames = {}
 
     pickUnionNamedTypes.forEach((namedType) => {
       if (namedType.astNode) {
         let type = namedType.astNode
 
-        // unions can only contain objects
+        // Unions can only contain objects
         if (type.kind === Kind.OBJECT_TYPE_DEFINITION) {
 
             // Get selections
@@ -717,7 +714,8 @@ function getSelectionSetAndVars(
 
   let aliasIndexes : {[fieldName: string]: number} = {}
   let cleanselections : SelectionNode[] = []
-  // ensure unique field names/aliases
+
+  // Ensure unique field names/aliases
   selections.forEach((selectionNode) => {
     if (selectionNode.kind === Kind.FIELD) {
       let fieldName = selectionNode.name.value
@@ -784,7 +782,7 @@ export function generateRandomMutation (
     resolveCount: 0
   }
 
-  // provide default providerMap:
+  // Provide default providerMap
   if (typeof finalConfig.providerMap !== 'object') {
     finalConfig.providerMap = {
       '*__*__*': null

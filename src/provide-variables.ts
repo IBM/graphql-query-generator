@@ -21,7 +21,7 @@ function doMatch (a: string, b: string) : boolean {
 }
 
 export function matchVarName (query: string, candidates: string[]) : string {
-  // case: exact match:
+  // Case: exact match
   if (candidates.includes(query)) {
     return query
   }

@@ -3,7 +3,7 @@ import { buildSchema, print, validate, DocumentNode, OperationDefinitionNode, De
 import { Configuration, generateRandomQuery } from '../src/index'
 import { GITHUB_PROVIDERS } from './github-providers'
 
-// globals:
+// Globals
 const schemaDef = fs.readFileSync('./test/fixtures/schema.graphql').toString()
 const schema = buildSchema(schemaDef)
 
@@ -13,7 +13,6 @@ const schemaGitHub = buildSchema(schemaDefGitHub)
 const schemaDefSimple = fs.readFileSync('./test/fixtures/simple.graphql').toString()
 const schemaSimple = buildSchema(schemaDefSimple)
 
-// helper function:
 function getOperationDefinition (doc: DocumentNode) : OperationDefinitionNode {
   const opDefs : DefinitionNode[] = doc.definitions.filter(def => {
     return def.kind === 'OperationDefinition'
@@ -28,9 +27,6 @@ test(`Obtain random query from example schema`, () => {
   }
 
   const {queryDocument, variableValues} = generateRandomQuery(schema, config)
-
-  // console.log(print(queryDocument))
-  // console.log(variableValues)
 
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
@@ -95,11 +91,13 @@ test(`Obtain random query from GitHub schema`, () => {
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
-  // console.log(print(queryDocument))
-  // console.log(variableValues)
-
   expect(queryDocument).toBeDefined()
-  expect(print(queryDocument) === '').toEqual(false)
+  expect(print(queryDocument).replace(/\s/g, '')).toEqual(`query RandomQuery($Query__codeOfConduct__key: String!) {
+    codeOfConduct(key: $Query__codeOfConduct__key) {
+      name
+      url
+    }
+  }`.replace(/\s/g, ''))
   expect(Object.keys(opDef.variableDefinitions).length)
     .toEqual(Object.keys(variableValues).length)
   expect(errors).toEqual([])
@@ -117,28 +115,20 @@ test(`Seeded query generation is deterministic`, () => {
     seed: 3
   }
 
-  /**
-   * Target query:
-   * 
-   * query RandomQuery($Query__codeOfConduct__key: String!) {
-      codeOfConduct(key: $Query__codeOfConduct__key) {
-        name
-        url
-      }
-    }
-   */
-
   const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
   expect(queryDocument).toBeDefined()
-  expect(print(queryDocument) === '').toEqual(false)
+  expect(print(queryDocument).replace(/\s/g, '')).toEqual(`query RandomQuery($Query__codeOfConduct__key: String!) {
+    codeOfConduct(key: $Query__codeOfConduct__key) {
+      name
+      url
+    }
+  }`.replace(/\s/g, ''))
   expect(Object.keys(opDef.variableDefinitions).length)
     .toEqual(Object.keys(variableValues).length)
   expect(errors).toEqual([])
-  expect(print(queryDocument).trim().split(`\n`).length).toBe(6)
-  expect(print(queryDocument).includes('codeOfConduct')).toBeTruthy()
 })
 
 test(`Missing provider leads to error`, () => {
@@ -184,9 +174,6 @@ test(`Provide custom provider map for GitHub schema`, () => {
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
-  // console.log(print(queryDocument))
-  // console.log(variableValues)
-
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
   expect(Object.keys(opDef.variableDefinitions).length)
@@ -206,216 +193,268 @@ test(`Utilize type__field provider`, () => {
     considerUnions: true,
     seed: 0.2805754930509623
   }
-
-  /**
-   * Target query:
-   * 
-   *  query RandomQuery($Repository__releases__first: Int, $Project__columns__first: Int, $Repository__projects__first: Int, $RepositoryOwner__pinnedRepositories__first: Int, $PullRequest__assignees__first: Int, $PullRequest__
-participants__first: Int, $ReactionGroup__users__first: Int, $Reactable__reactions__first: Int, $Issue__comments__first: Int, $Issue__reactions__first: Int, $Issue__timeline__first: Int, $Repository__pullRequest__number: Int!, $Query__repository__name: String!, $Query__repository__owner: String!) {
-      repository(name: $Query__repository__name, owner: $Query__repository__owner) {
-        releases(first: $Repository__releases__first) {
-          totalCount
-        }
-        projects(first: $Repository__projects__first) {
-          nodes {
-            columns(first: $Project__columns__first) {
-              pageInfo {
-                hasNextPage
-              }
-            }
-            updatedAt
-            url
-          }
-        }
-        pullRequest(number: $Repository__pullRequest__number) {
-          headRepositoryOwner {
-            pinnedRepositories(first: $RepositoryOwner__pinnedRepositories__first) {
-              edges {
-                cursor
-              }
-            }
-            avatarUrl
-            ... on User {
-              bio
-              companyHTML
-              createdAt
-              id
-              isSiteAdmin
-              location
-              login
-              updatedAt
-              websiteUrl
-            }
-          }
-          assignees(first: $PullRequest__assignees__first) {
-            nodes {
-              bioHTML
-              isBountyHunter
-              isCampusExpert
-            }
-          }
-          headRef {
-            repository {
-              description
-              diskUsage
-              viewerHasStarred
-              viewerSubscription
-            }
-          }
-          mergeCommit {
-            abbreviatedOid
-            changedFiles
-            deletions
-            id
-            treeResourcePath
-            treeUrl
-            url
-            viewerSubscription
-          }
-          mergedBy {
-            login
-            ... on Bot {
-              url
-            }
-          }
-          participants(first: $PullRequest__participants__first) {
-            totalCount
-          }
-          potentialMergeCommit {
-            id
-            messageBodyHTML
-            oid
-            treeResourcePath
-          }
-          reactionGroups {
-            users(first: $ReactionGroup__users__first) {
-              edges {
-                node {
-                  avatarUrl
-                  bioHTML
-                  companyHTML
-                  databaseId
-                  isBountyHunter
-                }
-                cursor
-              }
-            }
-            subject {
-              reactions(first: $Reactable__reactions__first) {
-                totalCount
-              }
-              reactionGroups {
-                users(first: $ReactionGroup__users__first) {
-                  totalCount
-                }
-                content
-                viewerHasReacted
-              }
-              ... on Issue {
-                reactionGroups2: reactionGroups {
-                  subject {
-                    databaseId
-                    id
-                    viewerCanReact
-                    ... on PullRequest {
-                      additions
-                      baseRefName
-                      createdViaEmail
-                      merged
-                      mergedAt
-                      resourcePath
-                      viewerCanSubscribe
-                    }
-                    ... on IssueComment {
-                      bodyHTML
-                      createdViaEmail2: createdViaEmail
-                      publishedAt
-                      viewerCanDelete
-                    }
-                    ... on PullRequestReviewComment {
-                      authorAssociation
-                      createdAt
-                      createdViaEmail3: createdViaEmail
-                      databaseId2: databaseId
-                      url
-                    }
-                  }
-                }
-                comments(first: $Issue__comments__first) {
-                  totalCount
-                }
-                reactions2: reactions(first: $Issue__reactions__first) {
-                  totalCount
-                  viewerHasReacted
-                }
-                timeline(first: $Issue__timeline__first) {
-                  pageInfo {
-                    startCursor
-                  }
-                  nodes {
-                    ... on UnlockedEvent {
-                      id
-                    }
-                  }
-                }
-                closedAt
-                id
-                lastEditedAt
-                publishedAt
-                title
-              }
-            }
-            viewerHasReacted
-          }
-          repository {
-            forkCount
-            hasWikiEnabled
-            isLocked
-            lockReason
-            name
-            projectsUrl
-            rebaseMergeAllowed
-            shortDescriptionHTML
-            viewerCanSubscribe
-            viewerSubscription
-          }
-          suggestedReviewers {
-            isCommenter
-          }
-          authorAssociation
-          baseRefName
-          baseRefOid
-          bodyHTML
-          bodyText
-          changedFiles
-          mergedAt
-          publishedAt
-          state
-          viewerCanApplySuggestion
-          viewerCanSubscribe
-          viewerCannotUpdateReasons
-        }
-        createdAt
-        isArchived
-        isLocked
-        mergeCommitAllowed
-        nameWithOwner
-        pushedAt
-        viewerHasStarred
-      }
-    }
-   */
-
-  const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
+  
+  const { queryDocument, variableValues } = generateRandomQuery(schemaGitHub, config)
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
   expect(queryDocument).toBeDefined()
-  expect(print(queryDocument) === '').toEqual(false)
+  expect(print(queryDocument).replace(/\s/g,'')).toEqual(`query RandomQuery($Repository__releases__first: Int, $Project__columns__first: Int, $Repository__projects__first: Int, $RepositoryOwner__pinnedRepositories__first: Int, $PullRequest_
+  _assignees__first: Int, $User__publicKeys__first: Int, $User__commitComments__first: Int, $User__organization__login: String!, $User__pullRequests__first: Int, $User__starredRepositories__
+  first: Int, $User__watching__first: Int, $PullRequest__participants__first: Int, $Repository__deployKeys__first: Int, $Repository__assignableUsers__first: Int, $Repository__collaborators__
+  first: Int, $Repository__issueOrPullRequest__number: Int!, $PullRequest__comments__first: Int, $PullRequest__labels__first: Int, $Repository__pullRequest__number: Int!, $Query__repository_
+  _name: String!, $Query__repository__owner: String!) {
+    repository(name: $Query__repository__name, owner: $Query__repository__owner) {
+      releases(first: $Repository__releases__first) {
+        totalCount
+      }
+      projects(first: $Repository__projects__first) {
+        nodes {
+          columns(first: $Project__columns__first) {
+            pageInfo {
+              hasNextPage
+            }
+          }
+          updatedAt
+          url
+        }
+      }
+      pullRequest(number: $Repository__pullRequest__number) {
+        headRepositoryOwner {
+          pinnedRepositories(first: $RepositoryOwner__pinnedRepositories__first) {
+            edges {
+              cursor
+            }
+          }
+          avatarUrl
+          ... on User {
+            bio
+            companyHTML
+            createdAt
+            id
+            isSiteAdmin
+            location
+            login
+            updatedAt
+            websiteUrl
+          }
+        }
+        assignees(first: $PullRequest__assignees__first) {
+          nodes {
+            bioHTML
+            isBountyHunter
+            isCampusExpert
+          }
+        }
+        headRef {
+          repository {
+            description
+            diskUsage
+            viewerHasStarred
+            viewerSubscription
+          }
+        }
+        mergeCommit {
+          abbreviatedOid
+          changedFiles
+          deletions
+          id
+          treeResourcePath
+          treeUrl
+          url
+          viewerSubscription
+        }
+        mergedBy {
+          login
+          ... on User {
+            isCampusExpert
+            viewerCanFollow
+          }
+        }
+        participants(first: $PullRequest__participants__first) {
+          nodes {
+            publicKeys(first: $User__publicKeys__first) {
+              pageInfo {
+                hasNextPage
+              }
+            }
+            commitComments(first: $User__commitComments__first) {
+              totalCount
+            }
+            organization(login: $User__organization__login) {
+              databaseId
+              id
+              location
+              newTeamUrl
+              resourcePath
+              viewerCanAdminister
+            }
+            pullRequests(first: $User__pullRequests__first) {
+              nodes {
+                baseRefOid
+                changedFiles
+                closedAt
+                databaseId
+                headRefOid
+                revertUrl
+                state
+                title
+                updatedAt
+                viewerCanApplySuggestion
+                viewerCanReact
+                viewerCanUpdate
+                viewerCannotUpdateReasons
+                viewerSubscription
+              }
+              edges {
+                cursor
+              }
+            }
+            starredRepositories(first: $User__starredRepositories__first) {
+              pageInfo {
+                endCursor
+              }
+            }
+            watching(first: $User__watching__first) {
+              nodes {
+                hasIssuesEnabled
+                hasWikiEnabled
+                isFork
+                projectsResourcePath
+                updatedAt
+                viewerCanCreateProjects
+                viewerSubscription
+              }
+            }
+            avatarUrl
+            company
+            createdAt
+            email
+            isBountyHunter
+            isEmployee
+          }
+          pageInfo {
+            hasPreviousPage
+          }
+        }
+        potentialMergeCommit {
+          authoredDate
+          committedDate
+          committedViaWeb
+          deletions
+          treeUrl
+        }
+        reactionGroups {
+          createdAt
+        }
+        repository {
+          deployKeys(first: $Repository__deployKeys__first) {
+            edges {
+              node {
+                verified
+              }
+            }
+          }
+          assignableUsers(first: $Repository__assignableUsers__first) {
+            nodes {
+              company
+              email
+              isCampusExpert
+              isDeveloperProgramMember
+              isSiteAdmin
+              resourcePath
+            }
+          }
+          collaborators(first: $Repository__collaborators__first) {
+            pageInfo {
+              endCursor
+            }
+            nodes {
+              bioHTML
+              databaseId
+              isHireable
+            }
+            totalCount
+          }
+          issueOrPullRequest(number: $Repository__issueOrPullRequest__number) {
+            ... on Issue {
+              bodyHTML
+              id
+            }
+          }
+          pullRequest(number: $Repository__pullRequest__number) {
+            comments(first: $PullRequest__comments__first) {
+              pageInfo {
+                startCursor
+              }
+            }
+            editor {
+              avatarUrl
+              ... on Bot {
+                createdAt
+              }
+            }
+            labels(first: $PullRequest__labels__first) {
+              totalCount
+            }
+            milestone {
+              url
+            }
+            activeLockReason
+            body
+            createdViaEmail
+            headRefOid
+            number
+            permalink
+            viewerCanReact
+            viewerDidAuthor
+          }
+          descriptionHTML
+          forkCount
+          isArchived
+          isMirror
+          mergeCommitAllowed
+          nameWithOwner
+          projectsUrl
+          rebaseMergeAllowed
+          viewerCanAdminister
+          viewerHasStarred
+        }
+        suggestedReviewers {
+          reviewer {
+            avatarUrl
+            isBountyHunter
+            isEmployee
+            isSiteAdmin
+          }
+        }
+        authorAssociation
+        baseRefName
+        baseRefOid
+        bodyHTML
+        bodyText
+        changedFiles
+        mergedAt
+        publishedAt
+        state
+        viewerCanApplySuggestion
+        viewerCanSubscribe
+        viewerCannotUpdateReasons
+      }
+      createdAt
+      isArchived
+      isLocked
+      mergeCommitAllowed
+      nameWithOwner
+      pushedAt
+      viewerHasStarred
+    }
+  }`.replace(/\s/g,''))
+
   expect(Object.keys(opDef.variableDefinitions).length)
     .toEqual(Object.keys(variableValues).length)
   expect(errors).toEqual([])
-  expect(print(queryDocument).trim().split(`\n`).length).toBe(193)
+  expect(print(queryDocument).trim().split(`\n`).length).toBe(247)
 })
 
 test(`Provided variables are passed to providers`, () => {
@@ -442,7 +481,10 @@ test(`Provided variables are passed to providers`, () => {
   const errors = validate(schemaSimple, queryDocument)
 
   expect(queryDocument).toBeDefined()
-  expect(print(queryDocument) === '').toEqual(false)
+  expect(print(queryDocument).replace(/\s/g,'')).toEqual(`query RandomQuery($Query__repository__name: String!, $Query__repository__owner: String!) {
+    name
+    repository(name: $Query__repository__name, owner: $Query__repository__owner)
+  }`.replace(/\s/g,''))
   expect(errors).toEqual([])
   expect(variableValues['Query__repository__name'] != variableValues['Query__repository__owner']).toBeTruthy()
 })
@@ -459,25 +501,59 @@ test(`Counts are as expected`, () => {
     seed: 5
   }
 
-  /**
-   * Target query:
-   * 
-   * query RandomQuery($Query__codeOfConduct__key: String!) {
-      codeOfConduct(key: $Query__codeOfConduct__key) {
-        name
-        url
-      }
-    }
-   */
-
   const {queryDocument, variableValues, typeCount, resolveCount, seed} = generateRandomQuery(schemaGitHub, config)
-  // console.log(typeCount, resolveCount, seed)
-  // console.log(print(queryDocument))
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
   expect(queryDocument).toBeDefined()
-  expect(print(queryDocument) === '').toEqual(false)
+  expect(print(queryDocument).replace(/\s/g,'')).toEqual(`query RandomQuery($Query__marketplaceListings__first: Int) {
+    marketplaceListings(first: $Query__marketplaceListings__first) {
+      edges {
+        node {
+          secondaryCategory {
+            description
+            howItWorks
+            primaryListingCount
+            resourcePath
+            secondaryListingCount
+            url
+          }
+          app {
+            databaseId
+            id
+            logoBackgroundColor
+            slug
+            url
+          }
+          configurationUrl
+          extendedDescription
+          extendedDescriptionHTML
+          fullDescriptionHTML
+          hasApprovalBeenRequested
+          howItWorks
+          howItWorksHTML
+          installedForViewer
+          isApproved
+          isDelisted
+          isPaid
+          logoUrl
+          name
+          normalizedShortDescription
+          resourcePath
+          slug
+          statusUrl
+          supportUrl
+          url
+          viewerCanDelist
+          viewerCanEditCategories
+          viewerCanEditPlans
+          viewerCanReject
+          viewerHasPurchasedForAllOrganizations
+        }
+        cursor
+      }
+    }
+  }`.replace(/\s/g,''))
   expect(Object.keys(opDef.variableDefinitions).length)
     .toEqual(Object.keys(variableValues).length)
   expect(errors).toEqual([])
