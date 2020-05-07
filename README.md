@@ -1,5 +1,17 @@
 # GraphQL Query Generator
-Generate randomized GraphQL queries from a given schema. All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). _Providers_ can be passed to provide values for these variables. For example:
+
+This library will generate randomized GraphQL queries from a given schema.
+
+It can be used in a few ways:
+
+- *Engineering*: If you operate a GraphQL service, you might use this library to:
+  - develop a static test suite of GraphQL queries
+  - develop a battery of queries to test the effect of performance improvements
+- *Scientific*: Understand the characteristics of various GraphQL services
+
+## Minimal working example
+
+All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). _Providers_ can be passed to provide values for these variables. For example:
 
 ```javascript
 import { generateRandomQuery } from 'this-library'
@@ -34,37 +46,57 @@ const {queryDocument, variableValues, seed} = generateRandomQuery(gitHubSchema, 
 ```
 
 ## Generating random queries
+
 This library exposes two functions for generating random GraphQL queries:
 
-* `getRandomQuery(schema: GraphQLSchema, config: Configuration)`: Produces a random query from the given schema, and considering the passed configuration.
-* `getRandomMutation(schema: GraphQLSchema, config: Configuration)`: Produces a random mutation from the given schema, and considering the passed configuration.
-
+- `getRandomQuery(schema: GraphQLSchema, config: Configuration)`: Produces a random query from the given schema, and considering the passed configuration.
+- `getRandomMutation(schema: GraphQLSchema, config: Configuration)`: Produces a random mutation from the given schema, and considering the passed configuration.
 
 ### Configuration
+
 Functions of this library accept a configuration object with the following properties:
 
-* `depthProbability` (type: `number`, default: `0.5`): The probability (from `0` to `1`) that, if existent, fields that themselves have subfields are selected at every level of the generated query. The number of so selected fields depends on the `breadthProbability`.
-* `breadthProbability` (type: `number`, default: `0.5`): The probability (from `0` to `1`) that a field (nested or flat) is selected at every level of the generated query.
-* `maxDepth` (type: `number`, default: `5`): The maximum depths of the query / mutation to generate. This library ensures that leave nodes do not requir children fields to be selected.
-* `ignoreOptionalArguments` (type: `boolean`, default: `true`): If set to `true`, non-mandatory arguments will not be included in the generated query / mutation.
-* `argumentsToIgnore` (type: `string[]`, default: `[]`): List of argument names that should be ignored in any case. If non-null arguments are configured to be ignored, an error will be thrown.
-* `argumentsToConsider` (type: `string[]`, default: `[]`): List of argument names that should be considered, even if the argument is optional and `ignoreOptionalArguments` is set to `true`.
-* `providerMap` (type: `{[varNameQuery: string] : any}`, default: `{'*__*__*': null}`): Map of values or functions to provide values for the variables present in the generated query / mutation. See details below.
-* `considerInterfaces` (type: `boolean`, default: `false`): Create queries containing interfaces (by calling fields in the interfaces and/or creating fragments on objects implementing the interfaces)
-* `considerUnions` (type: `boolean`, default: `false`): Create queries containing unions (by creating fragments on objects of the unions)
-* `seed` (type: `number`, optional): Allows the generator to produce queries deterministically based on a random number generator seed. If no seed is provided, a random seed will be provided. The seed that is used to produce the query, whether user-provided or randomly generated, will be included in the output.
-* `pickNestedQueryField` (type: `boolean`, default: `false`): Guarantees that the generator will pick at least one nested field. 
+- `depthProbability` (type: `number`, default: `0.5`): The probability (from `0` to `1`) that, if existent, fields that themselves have subfields are selected at every level of the generated query. The number of so selected fields depends on the `breadthProbability`.
+- `breadthProbability` (type: `number`, default: `0.5`): The probability (from `0` to `1`) that a field (nested or flat) is selected at every level of the generated query.
+- `maxDepth` (type: `number`, default: `5`): The maximum depths of the query / mutation to generate. This library ensures that leave nodes do not requir children fields to be selected.
+- `ignoreOptionalArguments` (type: `boolean`, default: `true`): If set to `true`, non-mandatory arguments will not be included in the generated query / mutation.
+- `argumentsToIgnore` (type: `string[]`, default: `[]`): List of argument names that should be ignored in any case. If non-null arguments are configured to be ignored, an error will be thrown.
+- `argumentsToConsider` (type: `string[]`, default: `[]`): List of argument names that should be considered, even if the argument is optional and `ignoreOptionalArguments` is set to `true`.
+- `providerMap` (type: `{[varNameQuery: string] : any}`, default: `{'*__*__*': null}`): Map of values or functions to provide values for the variables present in the generated query / mutation. See details below.
+- `considerInterfaces` (type: `boolean`, default: `false`): Create queries containing interfaces (by calling fields in the interfaces and/or creating fragments on objects implementing the interfaces)
+- `considerUnions` (type: `boolean`, default: `false`): Create queries containing unions (by creating fragments on objects of the unions)
+- `seed` (type: `number`, optional): Allows the generator to produce queries deterministically based on a random number generator seed. If no seed is provided, a random seed will be provided. The seed that is used to produce the query, whether user-provided or randomly generated, will be included in the output.
+- `pickNestedQueryField` (type: `boolean`, default: `false`): Guarantees that the generator will pick at least one nested field.
+
+Example:
+
+```javascript
+const cfg = {
+  'depthProbability':        0.5,
+  'breadthProbability:       0.5,
+  'maxDepth':                5,
+  'ignoreOptionalArguments': true,
+  'argumentsToIgnore':       [],
+  'argumentsToConsider':     [],
+  'providerMap':             {'*__*_*': null},
+  'considerInterfaces':      false,
+  'considerUnions':          false,
+  'seed':                    1,
+  'pickNestedQueryField':    false
+};
+```
 
 ### Provider map
+
 Whenever a randomly generated query or mutation requires an [argument](https://facebook.github.io/graphql/draft/#sec-Language.Arguments), this library exposes that argument as a [variable](https://facebook.github.io/graphql/draft/#sec-Language.Variables). The names of these variables reflect the type and field that the argument applies to, as well as the argument name like so:
 
-```
+```javascript
 <type>__<fieldName>__<argumentName>
 ```
 
 Alternatively, you can match using:
 
-```
+```javascript
 <type>__<fieldName>
 ```
 
@@ -80,9 +112,15 @@ This library also exposes a function `matchVarName(query: string, candidates: st
 
 Note that for variables with an [enumeration type](https://graphql.org/learn/schema/#enumeration-types), this lirbrary automatically chooses one value at random.
 
-
 ### Errors
+
 Generating random queries or mutations may fail in some cases:
 
-* An error is thrown if a query hits the defined `maxDepth`, but there are only fields with children to choose from. Choosing such a field but then not choosing a sub-field for it (due to the `maxDepth` constraint) would result in an invalid query and thus causes this library to throw an error.
-* An error is thrown if there is no provider defined for a variable in the generated query.
+- An error is thrown if a query hits the defined `maxDepth`, but there are only fields with children to choose from. Choosing such a field but then not choosing a sub-field for it (due to the `maxDepth` constraint) would result in an invalid query and thus causes this library to throw an error.
+- An error is thrown if there is no provider defined for a variable in the generated query.
+
+## Citing this library
+
+If you use this library in a scientific publication, please cite it as:
+
+*IBM, graphql-query-generator, 2020. https://github.com/IBM/graphql-query-generator.*
