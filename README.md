@@ -9,6 +9,13 @@ It can be used in a few ways:
   - develop a battery of queries to test the effect of performance improvements
 - _Scientific_: Understand the characteristics of various GraphQL services
 
+## Example configurations
+
+We provide sample configurations for the following APIs:
+
+- [GitHub API](https://github.com/IBM/graphql-query-generator/tree/master/examples/github-query-generator)
+- [Yelp API](https://github.com/IBM/graphql-query-generator/tree/master/examples/yelp-query-generator)
+
 ## Minimal working example
 
 All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). _Providers_ can be passed to provide values for these variables. For example:
@@ -25,6 +32,7 @@ const configuration = {
     },
   },
 };
+
 const { queryDocument, variableValues, seed } = generateRandomQuery(
   gitHubSchema,
   configuration
