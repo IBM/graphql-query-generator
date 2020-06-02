@@ -1,0 +1,38 @@
+{
+  "name": "yelp-query-generator",
+  "version": "1.0.0",
+  "description": "Tool to generate random GraphQL queries for the Yelp API",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && jest",
+    "introspection-to-schema": "npm run build && node lib/scripts/introspection-to-schema.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.ibm.com:graphql-research/yelp-graphql-data-collection.git"
+  },
+  "keywords": [
+    "graphql",
+    "yelp",
+    "data-collection"
+  ],
+  "author": "Erik Wittern, Alan Cha",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node-fetch": "^2.5.7",
+    "dotenv": "^8.2.0",
+    "graphql": "^14.0.2",
+    "graphql-query-generator": "git+ssh://git@github.ibm.com:graphql-research/graphql-query-generator.git",
+    "node-fetch": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/graphql": "^14.0.2",
+    "@types/jest": "^24.0.11",
+    "@types/node": "^10.11.6",
+    "jest": "^26.0.1",
+    "ts-jest": "^26.1.0",
+    "typescript": "^3.8.2"
+  }
+}

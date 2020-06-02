@@ -4,31 +4,34 @@ This library will generate randomized GraphQL queries from a given schema.
 
 It can be used in a few ways:
 
-- *Engineering*: If you operate a GraphQL service, you might use this library to:
+- _Engineering_: If you operate a GraphQL service, you might use this library to:
   - develop a static test suite of GraphQL queries
   - develop a battery of queries to test the effect of performance improvements
-- *Scientific*: Understand the characteristics of various GraphQL services
+- _Scientific_: Understand the characteristics of various GraphQL services
 
 ## Minimal working example
 
 All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). _Providers_ can be passed to provide values for these variables. For example:
 
 ```javascript
-import { generateRandomQuery } from 'this-library'
+import { generateRandomQuery } from "this-library";
 
 const configuration = {
   depthProbability: 0.1,
   breadthProbability: 0.2,
   providerMap: {
-    '*__marketplaceCategory__slug': (providedValues) => {
-      return 'testing'
-    }
-  }
-}
-const {queryDocument, variableValues, seed} = generateRandomQuery(gitHubSchema, configuration)
+    "*__marketplaceCategory__slug": (providedValues) => {
+      return "testing";
+    },
+  },
+};
+const { queryDocument, variableValues, seed } = generateRandomQuery(
+  gitHubSchema,
+  configuration
+);
 /**
  * Printing the queryDocument with graphql.print(queryDocument):
- * 
+ *
  *   query RandomQuery($Query__marketplaceCategory__slug: String!) {
  *     marketplaceCategory(slug: $Query__marketplaceCategory__slug) {
  *       howItWorks
@@ -36,9 +39,9 @@ const {queryDocument, variableValues, seed} = generateRandomQuery(gitHubSchema, 
  *       secondaryListingCount
  *     }
  *   }
- * 
+ *
  * ...and the variableValues would be:
- * 
+ *
  *   {
  *     "Query__marketplaceCategory__slug": "testing"
  *   }
@@ -123,4 +126,4 @@ Generating random queries or mutations may fail in some cases:
 
 If you use this library in a scientific publication, please cite it as:
 
-*IBM, graphql-query-generator, 2020. https://github.com/IBM/graphql-query-generator.*
+_IBM, graphql-query-generator, 2020. https://github.com/IBM/graphql-query-generator._
