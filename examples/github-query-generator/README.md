@@ -12,7 +12,13 @@ Create a file named `.env` with your GitHub [personal access token](https://help
 GITHUB_ACCESS_TOKEN={your access token}
 ```
 
-Use the `getGitHubQueryGenerator()` factory method to create a `GitHubQueryGenerator` object, which can be used to generate queries.
+Install the example library.
+
+```
+npm install .
+```
+
+The following JavaScript code, when executed from the current directory, uses the `getGitHubQueryGenerator()` factory method to create a `GitHubQueryGenerator` object, which can be used to generate queries.
 
 ```javascript
 require("dotenv").config();

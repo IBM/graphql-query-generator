@@ -11,7 +11,7 @@ It can be used in a few ways:
 
 ## Example configurations
 
-We provide sample configurations for the following APIs:
+We provide sample query generators for the following APIs:
 
 - [GitHub API](https://github.com/IBM/graphql-query-generator/tree/master/examples/github-query-generator)
 - [Yelp API](https://github.com/IBM/graphql-query-generator/tree/master/examples/yelp-query-generator)

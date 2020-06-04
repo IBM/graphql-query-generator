@@ -12,7 +12,13 @@ Create a file named `.env` with your Yelp [API key](https://www.yelp.com/develop
 YELP_ACCESS_TOKEN={your API key}
 ```
 
-Use the `getYelpQueryGenerator()` factory method to create a `YelpQueryGenerator` object, which can be used to generate queries.
+Install the example library.
+
+```
+npm install .
+```
+
+The following JavaScript code, when executed from the current directory, uses the `getYelpQueryGenerator()` factory method to create a `YelpQueryGenerator` object, which can be used to generate queries.
 
 ```javascript
 require("dotenv").config();
