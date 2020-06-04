@@ -6,8 +6,7 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && jest",
-    "introspection-to-schema": "npm run build && node lib/scripts/introspection-to-schema.js"
+    "test": "npm run build && jest"
   },
   "repository": {
     "type": "git",
