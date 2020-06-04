@@ -3,7 +3,7 @@ import { Configuration } from "graphql-query-generator";
 declare class YelpQueryGenerator {
   yelpSchema: GraphQLSchema;
   yelpQueryConfig: Configuration;
-  constructor(yelpSchema: any, yelpQueryConfig: any);
+  constructor(yelpSchema: GraphQLSchema, yelpQueryConfig: Configuration);
   generateRandomYelpQuery(): {
     queryDocument: import("graphql").DocumentNode;
     variableValues: {
@@ -14,5 +14,7 @@ declare class YelpQueryGenerator {
     resolveCount: number;
   };
 }
-export declare function getYelpQueryGenerator(): Promise<YelpQueryGenerator>;
+export declare function getYelpQueryGenerator(
+  yelpAccessToken: string
+): Promise<YelpQueryGenerator>;
 export {};

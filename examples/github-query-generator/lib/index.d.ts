@@ -3,7 +3,7 @@ import { Configuration } from "graphql-query-generator";
 declare class GitHubQueryGenerator {
   gitHubSchema: GraphQLSchema;
   gitHubQueryConfig: Configuration;
-  constructor(gitHubSchema: any, gitHubQueryConfig: any);
+  constructor(gitHubSchema: GraphQLSchema, gitHubQueryConfig: Configuration);
   generateRandomGitHubQuery(): {
     queryDocument: import("graphql").DocumentNode;
     variableValues: {
@@ -14,7 +14,7 @@ declare class GitHubQueryGenerator {
     resolveCount: number;
   };
 }
-export declare function getGitHubQueryGenerator(): Promise<
-  GitHubQueryGenerator
->;
+export declare function getGitHubQueryGenerator(
+  gitHubAccessToken: string
+): Promise<GitHubQueryGenerator>;
 export {};

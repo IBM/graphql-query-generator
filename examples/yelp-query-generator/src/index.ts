@@ -8,7 +8,7 @@ class YelpQueryGenerator {
   yelpSchema: GraphQLSchema;
   yelpQueryConfig: Configuration;
 
-  constructor(yelpSchema, yelpQueryConfig) {
+  constructor(yelpSchema: GraphQLSchema, yelpQueryConfig: Configuration) {
     this.yelpSchema = yelpSchema;
     this.yelpQueryConfig = yelpQueryConfig;
   }
@@ -18,13 +18,13 @@ class YelpQueryGenerator {
   }
 }
 
-export function getYelpQueryGenerator() {
+export function getYelpQueryGenerator(yelpAccessToken: string) {
   return new Promise<YelpQueryGenerator>((resolve, reject) => {
     const yelpSchemaStr = fs
       .readFileSync(path.resolve(__dirname, "../fixtures/yelp.graphql"))
       .toString();
     const yelpSchema = buildSchema(yelpSchemaStr);
-    getProviderMap().then((yelpProviders) => {
+    getProviderMap(yelpAccessToken).then((yelpProviders) => {
       resolve(
         new YelpQueryGenerator(yelpSchema, {
           breadthProbability: 0.5,

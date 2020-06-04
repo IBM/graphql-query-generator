@@ -1,31 +1,45 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getProviderMap = exports.extractGhsaIds = exports.topics = exports.runGitHubGraphQLQuery = void 0;
-const dotenv = require("dotenv");
-dotenv.config();
 const fetch = require("node-fetch");
 const graphql_query_generator_1 = require("graphql-query-generator");
 /**
  * Given a GraphQL query, run it against the GitHub API and extract the data
  */
-function runGitHubGraphQLQuery(query) {
+function runGitHubGraphQLQuery(query, gitHubAccessToken) {
   return new Promise((resolve, reject) => {
     fetch
       .default("https://api.github.com/graphql", {
         method: "POST",
         body: JSON.stringify({ query }),
         headers: {
-          Authorization: `token ${process.env.GITHUB_ACCESS_TOKEN}`,
+          Authorization: `token ${gitHubAccessToken}`,
         },
       })
       .then((res) => {
         if (res.status === 200) {
           return res.json();
+        } else if (res.status === 401) {
+          throw new Error(
+            "Unauthorized GitHub API call. Did you provide a valid GitHub access token?"
+          );
         } else {
-          reject("Unsuccessful GitHub API call");
+          throw new Error("Unsuccessful GitHub API call.");
         }
       })
-      .then((json) => resolve(json.data));
+      .then((json) => {
+        if ("errors" in json) {
+          const insufficientScopesError = json.errors.find(
+            (error) => error.type === "INSUFFICIENT_SCOPES"
+          );
+          if (insufficientScopesError) {
+            throw new Error(
+              `GitHub access token has insufficient scopes. + ${insufficientScopesError.message}`
+            );
+          }
+        }
+        resolve(json.data);
+      });
   });
 }
 exports.runGitHubGraphQLQuery = runGitHubGraphQLQuery;
@@ -407,65 +421,71 @@ function extractRepos(data) {
     allRepos,
   };
 }
-function getProviderMap() {
+function getProviderMap(gitHubAccessToken) {
   return new Promise((resolve, reject) => {
     const marketplaceCategorySlugsPromise = new Promise((resolve, reject) => {
-      runGitHubGraphQLQuery(marketplaceCategorySlugsQuery).then(
+      runGitHubGraphQLQuery(
+        marketplaceCategorySlugsQuery,
+        gitHubAccessToken
+      ).then(
         (data) => {
           resolve(extractMarketplaceCategorySlugs(data));
         },
         (error) => {
-          reject("Could not fetch marketplace categories slugs");
+          reject(`Could not fetch marketplace categories slugs. ${error}`);
         }
       );
     });
     const marketplaceListingSlugsPromise = new Promise((resolve, reject) => {
-      runGitHubGraphQLQuery(marketplaceListingSlugsQuery).then(
+      runGitHubGraphQLQuery(
+        marketplaceListingSlugsQuery,
+        gitHubAccessToken
+      ).then(
         (data) => {
           resolve(extractMarketplaceListingSlugs(data));
         },
         (error) => {
-          reject("Could not fetch marketplace listings slugs");
+          reject(`Could not fetch marketplace listings slugs. ${error}`);
         }
       );
     });
     const licenseKeysPromise = new Promise((resolve, reject) => {
-      runGitHubGraphQLQuery(licenseKeysQuery).then(
+      runGitHubGraphQLQuery(licenseKeysQuery, gitHubAccessToken).then(
         (data) => {
           resolve(extractLicenseKeys(data));
         },
         (error) => {
-          reject("Could not fetch license keys");
+          reject(`Could not fetch license keys. ${error}`);
         }
       );
     });
     const codeOfConductKeysPromise = new Promise((resolve, reject) => {
-      runGitHubGraphQLQuery(codeOfConductKeysQuery).then(
+      runGitHubGraphQLQuery(codeOfConductKeysQuery, gitHubAccessToken).then(
         (data) => {
           resolve(extractCodeOfConductKeys(data));
         },
         (error) => {
-          reject("Could not fetch code of conduct keys");
+          reject(`Could not fetch code of conduct keys. ${error}`);
         }
       );
     });
     const ghsaIdsPromise = new Promise((resolve, reject) => {
-      runGitHubGraphQLQuery(ghsaIdsQuery).then(
+      runGitHubGraphQLQuery(ghsaIdsQuery, gitHubAccessToken).then(
         (data) => {
           resolve(extractGhsaIds(data));
         },
         (error) => {
-          reject("Could not fetch GHSA IDs");
+          reject(`Could not fetch GHSA IDs. ${error}`);
         }
       );
     });
     const reposPromise = new Promise((resolve, reject) => {
-      runGitHubGraphQLQuery(reposQuery).then(
+      runGitHubGraphQLQuery(reposQuery, gitHubAccessToken).then(
         (data) => {
           resolve(extractRepos(data));
         },
         (error) => {
-          reject("Could not fetch repos");
+          reject(`Could not fetch repos. ${error}`);
         }
       );
     });
@@ -554,10 +574,12 @@ function getProviderMap() {
           const pair = allRepos.find(
             (repo) => repo.repository === existingRepo
           );
-          if ("organization" in pair) {
-            return pair.organization;
-          } else if ("userlogin" in pair) {
-            return pair.userlogin;
+          if (pair) {
+            if ("organization" in pair) {
+              return pair.organization;
+            } else if ("userlogin" in pair) {
+              return pair.userlogin;
+            }
           }
         }
         const pair = allRepos[Math.floor(Math.random() * allRepos.length)];
@@ -568,6 +590,7 @@ function getProviderMap() {
         }
       }
       function getRandomRepositoryName(existingVars) {
+        var _a, _b, _c;
         // If there is already a user login in the variables, return matching repository:
         const userLoginKey = graphql_query_generator_1.matchVarName(
           "*__user__login",
@@ -575,8 +598,11 @@ function getProviderMap() {
         );
         if (userLoginKey) {
           const userLogin = existingVars[userLoginKey];
-          return userRepos.find((repo) => repo.userlogin === userLogin)
-            .repository;
+          return (_a = userRepos.find(
+            (repo) => repo.userlogin === userLogin
+          )) === null || _a === void 0
+            ? void 0
+            : _a.repository;
         }
         // If there is already an organization in the variables, return matching repository:
         const organizationKey = graphql_query_generator_1.matchVarName(
@@ -585,8 +611,11 @@ function getProviderMap() {
         );
         if (organizationKey) {
           const organization = existingVars[organizationKey];
-          return orgRepos.find((repo) => repo.organization === organization)
-            .repository;
+          return (_b = orgRepos.find(
+            (repo) => repo.organization === organization
+          )) === null || _b === void 0
+            ? void 0
+            : _b.repository;
         }
         // If there is already an owner in the variables, return matching repository:
         const ownerKey = graphql_query_generator_1.matchVarName(
@@ -595,14 +624,11 @@ function getProviderMap() {
         );
         if (ownerKey) {
           const owner = existingVars[ownerKey];
-          return (
-            allRepos
-              // @ts-ignore
-              .find(
-                (repo) =>
-                  repo.userlogin === owner || repo.organization === owner
-              ).repository
-          );
+          return (_c = allRepos.find(
+            (repo) => repo.userlogin === owner || repo.organization === owner
+          )) === null || _c === void 0
+            ? void 0
+            : _c.repository;
         }
         return allRepos[Math.floor(Math.random() * allRepos.length)].repository;
       }

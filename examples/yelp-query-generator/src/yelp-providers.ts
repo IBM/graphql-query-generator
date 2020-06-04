@@ -1,25 +1,26 @@
-import * as dotenv from "dotenv";
-dotenv.config();
-
 import * as fetch from "node-fetch";
 import { ProviderMap } from "graphql-query-generator/lib/provide-variables";
 
-export function runYelpGraphQLQuery(query) {
+export function runYelpGraphQLQuery(query: string, yelpAccessToken: string) {
   return new Promise((resolve, reject) => {
     fetch
       .default("https://api.yelp.com/v3/graphql", {
         method: "POST",
         body: query,
         headers: {
-          Authorization: `Bearer ${process.env.YELP_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${yelpAccessToken}`,
           "Content-Type": "application/graphql",
         },
       })
       .then((res) => {
         if (res.status === 200) {
           return res.json();
+        } else if (res.status === 401) {
+          throw new Error(
+            "Unauthorized Yelp API call. Did you provide a valid Yelp access token?"
+          );
         } else {
-          reject("Unsuccessful Yelp API call");
+          throw new Error("Unsuccessful Yelp API call.");
         }
       })
       .then((json) => {
@@ -85,11 +86,11 @@ type Event = {
   id: string;
 };
 
-export function extractBusinesses(data): Business[] {
+export function extractBusinesses(data: any): Business[] {
   return data.search.business;
 }
 
-function extractEvents(data): Event[] {
+function extractEvents(data: any): Event[] {
   return data.event_search.events;
 }
 
@@ -98,7 +99,7 @@ function extractEvents(data): Event[] {
  *
  * See: https://stackoverflow.com/a/36481059/1023827
  */
-function randomBm() {
+function randomBm(): number {
   let u = 0,
     v = 0;
   while (u === 0) u = Math.random(); // Converting [0,1) to (0,1)
@@ -126,7 +127,7 @@ function getRandomLocation() {
   return locations[index];
 }
 
-export function getProviderMap() {
+export function getProviderMap(yelpAccessToken: string) {
   return new Promise<ProviderMap>((resolve, reject) => {
     const businessesPromise = new Promise<Business[]>((resolve, reject) => {
       Promise.all(
@@ -135,27 +136,28 @@ export function getProviderMap() {
           return new Promise((resolve, reject) => {
             // Delay the requests, otherwise will receive status: 429 Too Many Requests
             setTimeout(() => {
-              runYelpGraphQLQuery(getBusinessesQuery(location)).then((data) =>
-                resolve(extractBusinesses(data))
-              );
+              runYelpGraphQLQuery(getBusinessesQuery(location), yelpAccessToken)
+                .then((data) => resolve(extractBusinesses(data)))
+                .catch((error) =>
+                  reject(`Could not fetch businesses. ${error}`)
+                );
             }, i * 500);
           });
         })
       ).then((values) => {
         // Concatenate all the businesses across all locations
-        resolve([].concat(...values));
+        resolve(([] as Business[]).concat(...(values as Business[][])));
       });
     });
 
     const eventsPromise = new Promise<Event[]>((resolve, reject) => {
-      runYelpGraphQLQuery(eventsQuery).then(
-        (data) => {
+      runYelpGraphQLQuery(eventsQuery, yelpAccessToken)
+        .then((data) => {
           resolve(extractEvents(data));
-        },
-        (error) => {
-          reject("Could not fetch events");
-        }
-      );
+        })
+        .catch((error) => {
+          reject(`Could not fetch events. ${error}`);
+        });
     });
 
     Promise.all([businessesPromise, eventsPromise]).then((values) => {

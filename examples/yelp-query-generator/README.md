@@ -15,10 +15,12 @@ YELP_ACCESS_TOKEN={your API key}
 Use the `getYelpQueryGenerator()` factory method to create a `YelpQueryGenerator` object, which can be used to generate queries.
 
 ```javascript
+require("dotenv").config();
+
 const { getYelpQueryGenerator } = require("./lib/index");
 const { print } = require("graphql");
 
-getYelpQueryGenerator().then((queryGenerator) => {
+getYelpQueryGenerator(process.env.YELP_ACCESS_TOKEN).then((queryGenerator) => {
   const query = queryGenerator.generateRandomYelpQuery();
   const { queryDocument, variableValues } = query;
 

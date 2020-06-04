@@ -9,7 +9,7 @@ class GitHubQueryGenerator {
   gitHubSchema: GraphQLSchema;
   gitHubQueryConfig: Configuration;
 
-  constructor(gitHubSchema, gitHubQueryConfig) {
+  constructor(gitHubSchema: GraphQLSchema, gitHubQueryConfig: Configuration) {
     this.gitHubSchema = gitHubSchema;
     this.gitHubQueryConfig = gitHubQueryConfig;
   }
@@ -19,7 +19,7 @@ class GitHubQueryGenerator {
   }
 }
 
-export function getGitHubQueryGenerator() {
+export function getGitHubQueryGenerator(gitHubAccessToken: string) {
   return new Promise<GitHubQueryGenerator>((resolve, reject) => {
     const gitHubSchemaStr = fs.readFileSync(
       path.resolve(__dirname, "../fixtures/github.graphql"),
@@ -27,7 +27,7 @@ export function getGitHubQueryGenerator() {
     );
     const gitHubSchema = buildSchema(gitHubSchemaStr);
 
-    getProviderMap().then((gitHubProviders) => {
+    getProviderMap(gitHubAccessToken).then((gitHubProviders) => {
       resolve(
         new GitHubQueryGenerator(gitHubSchema, {
           breadthProbability: 0.5,

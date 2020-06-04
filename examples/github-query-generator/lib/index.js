@@ -18,26 +18,28 @@ class GitHubQueryGenerator {
     );
   }
 }
-function getGitHubQueryGenerator() {
+function getGitHubQueryGenerator(gitHubAccessToken) {
   return new Promise((resolve, reject) => {
     const gitHubSchemaStr = fs.readFileSync(
       path.resolve(__dirname, "../fixtures/github.graphql"),
       "utf8"
     );
     const gitHubSchema = graphql_1.buildSchema(gitHubSchemaStr);
-    github_providers_1.getProviderMap().then((gitHubProviders) => {
-      resolve(
-        new GitHubQueryGenerator(gitHubSchema, {
-          breadthProbability: 0.5,
-          depthProbability: 0.5,
-          maxDepth: 10,
-          providerMap: gitHubProviders,
-          argumentsToConsider: ["first"],
-          considerUnions: true,
-          pickNestedQueryField: true,
-        })
-      );
-    });
+    github_providers_1
+      .getProviderMap(gitHubAccessToken)
+      .then((gitHubProviders) => {
+        resolve(
+          new GitHubQueryGenerator(gitHubSchema, {
+            breadthProbability: 0.5,
+            depthProbability: 0.5,
+            maxDepth: 10,
+            providerMap: gitHubProviders,
+            argumentsToConsider: ["first"],
+            considerUnions: true,
+            pickNestedQueryField: true,
+          })
+        );
+      });
   });
 }
 exports.getGitHubQueryGenerator = getGitHubQueryGenerator;

@@ -1,5 +1,8 @@
 import { ProviderMap } from "graphql-query-generator/lib/provide-variables";
-export declare function runYelpGraphQLQuery(query: any): Promise<unknown>;
+export declare function runYelpGraphQLQuery(
+  query: string,
+  yelpAccessToken: string
+): Promise<unknown>;
 export declare function getBusinessesQuery(location: string): string;
 export declare const eventsQuery =
   "{\n  event_search(limit: 50) {\n    events {\n      id\n    }\n  }\n}";
@@ -16,5 +19,7 @@ declare type Business = {
   };
 };
 export declare function extractBusinesses(data: any): Business[];
-export declare function getProviderMap(): Promise<ProviderMap>;
+export declare function getProviderMap(
+  yelpAccessToken: string
+): Promise<ProviderMap>;
 export {};

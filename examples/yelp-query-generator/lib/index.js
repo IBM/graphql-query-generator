@@ -18,13 +18,13 @@ class YelpQueryGenerator {
     );
   }
 }
-function getYelpQueryGenerator() {
+function getYelpQueryGenerator(yelpAccessToken) {
   return new Promise((resolve, reject) => {
     const yelpSchemaStr = fs
       .readFileSync(path.resolve(__dirname, "../fixtures/yelp.graphql"))
       .toString();
     const yelpSchema = graphql_1.buildSchema(yelpSchemaStr);
-    yelp_providers_1.getProviderMap().then((yelpProviders) => {
+    yelp_providers_1.getProviderMap(yelpAccessToken).then((yelpProviders) => {
       resolve(
         new YelpQueryGenerator(yelpSchema, {
           breadthProbability: 0.5,

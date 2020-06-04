@@ -1,35 +1,47 @@
-import * as dotenv from "dotenv";
-dotenv.config();
-
 import * as fetch from "node-fetch";
 
-import {
-  ProviderMap,
-  ProviderFunction,
-} from "graphql-query-generator/lib/provide-variables";
+import { ProviderMap } from "graphql-query-generator/lib/provide-variables";
 import { matchVarName } from "graphql-query-generator";
 
 /**
  * Given a GraphQL query, run it against the GitHub API and extract the data
  */
-export function runGitHubGraphQLQuery(query) {
+export function runGitHubGraphQLQuery(query: any, gitHubAccessToken: string) {
   return new Promise((resolve, reject) => {
     fetch
       .default("https://api.github.com/graphql", {
         method: "POST",
         body: JSON.stringify({ query }),
         headers: {
-          Authorization: `token ${process.env.GITHUB_ACCESS_TOKEN}`,
+          Authorization: `token ${gitHubAccessToken}`,
         },
       })
       .then((res) => {
         if (res.status === 200) {
           return res.json();
+        } else if (res.status === 401) {
+          throw new Error(
+            "Unauthorized GitHub API call. Did you provide a valid GitHub access token?"
+          );
         } else {
-          reject("Unsuccessful GitHub API call");
+          throw new Error("Unsuccessful GitHub API call.");
         }
       })
-      .then((json) => resolve(json.data));
+      .then((json: any) => {
+        if ("errors" in json) {
+          const insufficientScopesError = (json.errors as any[]).find(
+            (error) => error.type === "INSUFFICIENT_SCOPES"
+          );
+
+          if (insufficientScopesError) {
+            throw new Error(
+              `GitHub access token has insufficient scopes. + ${insufficientScopesError.message}`
+            );
+          }
+        }
+
+        resolve(json.data);
+      });
   });
 }
 
@@ -334,7 +346,7 @@ export const topics = [
  *
  * See: https://stackoverflow.com/a/49434653/12357477
  */
-function randomBm() {
+function randomBm(): number {
   let u = 0,
     v = 0;
   while (u === 0) u = Math.random(); // Converting [0,1) to (0,1)
@@ -352,15 +364,15 @@ function getRandomInt() {
   return Math.floor(10 * randomBm());
 }
 
-function extractMarketplaceCategorySlugs(data) {
-  return data.marketplaceCategories.map((category) => {
+function extractMarketplaceCategorySlugs(data: any) {
+  return data.marketplaceCategories.map((category: any) => {
     return category.slug;
   });
 }
 
-function extractMarketplaceListingSlugs(data) {
-  const result = [];
-  data.marketplaceListings.nodes.forEach((node) => {
+function extractMarketplaceListingSlugs(data: any) {
+  const result: string[] = [];
+  data.marketplaceListings.nodes.forEach((node: any) => {
     if (node.app && typeof node.app.slug === "string") {
       result.push(node.app.slug);
     }
@@ -368,14 +380,14 @@ function extractMarketplaceListingSlugs(data) {
   return result;
 }
 
-function extractLicenseKeys(data) {
-  return data.licenses.map((license) => {
+function extractLicenseKeys(data: any) {
+  return data.licenses.map((license: any) => {
     return license.key;
   });
 }
 
-function extractCodeOfConductKeys(data) {
-  return data.codesOfConduct.map((code) => {
+function extractCodeOfConductKeys(data: any) {
+  return data.codesOfConduct.map((code: any) => {
     return code.key;
   });
 }
@@ -400,8 +412,8 @@ function getRandomTopic() {
   return topics[Math.floor(Math.random() * topics.length)];
 }
 
-export function extractGhsaIds(data) {
-  return data.securityAdvisories.nodes.map((node) => {
+export function extractGhsaIds(data: any) {
+  return data.securityAdvisories.nodes.map((node: any) => {
     return node.ghsaId;
   });
 }
@@ -416,12 +428,12 @@ type OrgRepo = {
   repository: string;
 };
 
-function extractRepos(data) {
+function extractRepos(data: any) {
   const userRepos: UserRepo[] = [];
   const orgRepos: OrgRepo[] = [];
   const allRepos: (UserRepo | OrgRepo)[] = [];
 
-  data.search.nodes.forEach((node) => {
+  data.search.nodes.forEach((node: any) => {
     if ("userlogin" in node.owner) {
       const repo = {
         userlogin: node.owner.userlogin,
@@ -448,16 +460,19 @@ function extractRepos(data) {
   };
 }
 
-export function getProviderMap() {
+export function getProviderMap(gitHubAccessToken: string) {
   return new Promise<ProviderMap>((resolve, reject) => {
     const marketplaceCategorySlugsPromise = new Promise<string[]>(
       (resolve, reject) => {
-        runGitHubGraphQLQuery(marketplaceCategorySlugsQuery).then(
+        runGitHubGraphQLQuery(
+          marketplaceCategorySlugsQuery,
+          gitHubAccessToken
+        ).then(
           (data) => {
             resolve(extractMarketplaceCategorySlugs(data));
           },
           (error) => {
-            reject("Could not fetch marketplace categories slugs");
+            reject(`Could not fetch marketplace categories slugs. ${error}`);
           }
         );
       }
@@ -465,48 +480,51 @@ export function getProviderMap() {
 
     const marketplaceListingSlugsPromise = new Promise<string[]>(
       (resolve, reject) => {
-        runGitHubGraphQLQuery(marketplaceListingSlugsQuery).then(
+        runGitHubGraphQLQuery(
+          marketplaceListingSlugsQuery,
+          gitHubAccessToken
+        ).then(
           (data) => {
             resolve(extractMarketplaceListingSlugs(data));
           },
           (error) => {
-            reject("Could not fetch marketplace listings slugs");
+            reject(`Could not fetch marketplace listings slugs. ${error}`);
           }
         );
       }
     );
 
     const licenseKeysPromise = new Promise<string[]>((resolve, reject) => {
-      runGitHubGraphQLQuery(licenseKeysQuery).then(
+      runGitHubGraphQLQuery(licenseKeysQuery, gitHubAccessToken).then(
         (data) => {
           resolve(extractLicenseKeys(data));
         },
         (error) => {
-          reject("Could not fetch license keys");
+          reject(`Could not fetch license keys. ${error}`);
         }
       );
     });
 
     const codeOfConductKeysPromise = new Promise<string[]>(
       (resolve, reject) => {
-        runGitHubGraphQLQuery(codeOfConductKeysQuery).then(
+        runGitHubGraphQLQuery(codeOfConductKeysQuery, gitHubAccessToken).then(
           (data) => {
             resolve(extractCodeOfConductKeys(data));
           },
           (error) => {
-            reject("Could not fetch code of conduct keys");
+            reject(`Could not fetch code of conduct keys. ${error}`);
           }
         );
       }
     );
 
     const ghsaIdsPromise = new Promise<string[]>((resolve, reject) => {
-      runGitHubGraphQLQuery(ghsaIdsQuery).then(
+      runGitHubGraphQLQuery(ghsaIdsQuery, gitHubAccessToken).then(
         (data) => {
           resolve(extractGhsaIds(data));
         },
         (error) => {
-          reject("Could not fetch GHSA IDs");
+          reject(`Could not fetch GHSA IDs. ${error}`);
         }
       );
     });
@@ -516,12 +534,12 @@ export function getProviderMap() {
       orgRepos: OrgRepo[];
       allRepos: (UserRepo | OrgRepo)[];
     }>((resolve, reject) => {
-      runGitHubGraphQLQuery(reposQuery).then(
+      runGitHubGraphQLQuery(reposQuery, gitHubAccessToken).then(
         (data) => {
           resolve(extractRepos(data));
         },
         (error) => {
-          reject("Could not fetch repos");
+          reject(`Could not fetch repos. ${error}`);
         }
       );
     });
@@ -571,7 +589,7 @@ export function getProviderMap() {
         return ghsaIds[Math.floor(Math.random() * ghsaIds.length)];
       }
 
-      function getRandomUserLogin(existingVars) {
+      function getRandomUserLogin(existingVars: any) {
         // If there is already repository in the variables, return matching user:
         const repoVarKey = matchVarName(
           "*__repository__name",
@@ -590,7 +608,7 @@ export function getProviderMap() {
           .userlogin;
       }
 
-      function getRandomOrganizationLogin(existingVars) {
+      function getRandomOrganizationLogin(existingVars: any) {
         // if there is already repository in the variables, return matching user:
         const repoVarKey = matchVarName(
           "*__repository__name",
@@ -609,7 +627,7 @@ export function getProviderMap() {
           .organization;
       }
 
-      function getRandomOwner(existingVars) {
+      function getRandomOwner(existingVars: any) {
         // If there is already a repository, return matching owner:
         const repoKey = matchVarName(
           "*__repository__name",
@@ -620,12 +638,16 @@ export function getProviderMap() {
           const pair = allRepos.find(
             (repo) => repo.repository === existingRepo
           );
-          if ("organization" in pair) {
-            return pair.organization;
-          } else if ("userlogin" in pair) {
-            return pair.userlogin;
+
+          if (pair) {
+            if ("organization" in pair) {
+              return pair.organization;
+            } else if ("userlogin" in pair) {
+              return pair.userlogin;
+            }
           }
         }
+
         const pair = allRepos[Math.floor(Math.random() * allRepos.length)];
         if ("organization" in pair) {
           return pair.organization;
@@ -634,7 +656,7 @@ export function getProviderMap() {
         }
       }
 
-      function getRandomRepositoryName(existingVars) {
+      function getRandomRepositoryName(existingVars: any) {
         // If there is already a user login in the variables, return matching repository:
         const userLoginKey = matchVarName(
           "*__user__login",
@@ -643,7 +665,7 @@ export function getProviderMap() {
         if (userLoginKey) {
           const userLogin = existingVars[userLoginKey];
           return userRepos.find((repo) => repo.userlogin === userLogin)
-            .repository;
+            ?.repository;
         }
         // If there is already an organization in the variables, return matching repository:
         const organizationKey = matchVarName(
@@ -653,7 +675,7 @@ export function getProviderMap() {
         if (organizationKey) {
           const organization = existingVars[organizationKey];
           return orgRepos.find((repo) => repo.organization === organization)
-            .repository;
+            ?.repository;
         }
         // If there is already an owner in the variables, return matching repository:
         const ownerKey = matchVarName(
@@ -662,14 +684,11 @@ export function getProviderMap() {
         );
         if (ownerKey) {
           const owner = existingVars[ownerKey];
-          return (
-            allRepos
-              // @ts-ignore
-              .find(
-                (repo) =>
-                  repo.userlogin === owner || repo.organization === owner
-              ).repository
-          );
+          return allRepos.find(
+            (repo) =>
+              (repo as UserRepo).userlogin === owner ||
+              (repo as OrgRepo).organization === owner
+          )?.repository;
         }
         return allRepos[Math.floor(Math.random() * allRepos.length)].repository;
       }
