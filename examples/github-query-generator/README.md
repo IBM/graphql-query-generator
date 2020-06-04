@@ -4,6 +4,14 @@ Generates random GraphQL queries for the [GitHub GraphQL API](https://developer.
 
 ### Usage
 
+Clone the example library.
+
+Install the dependencies.
+
+```bash
+npm ci
+```
+
 The query generator dynamically creates [providers](https://github.com/IBM/GraphQL-Query-Generator#provider-map) by querying the GitHub API for data. In order to do so, you must provide your GitHub credentials.
 
 Create a file named `.env` with your GitHub [personal access token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line).
@@ -12,13 +20,7 @@ Create a file named `.env` with your GitHub [personal access token](https://help
 GITHUB_ACCESS_TOKEN={your access token}
 ```
 
-Install the example library.
-
-```
-npm install .
-```
-
-The following JavaScript code, when executed from the current directory, uses the `getGitHubQueryGenerator()` factory method to create a `GitHubQueryGenerator` object, which can be used to generate queries.
+Use the `getGitHubQueryGenerator()` factory method to create a `GitHubQueryGenerator` object, which can be used to generate queries.
 
 ```javascript
 require("dotenv").config();
