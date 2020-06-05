@@ -21,39 +21,60 @@ We provide sample query generators for the following APIs:
 All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). _Providers_ can be passed to provide values for these variables. For example:
 
 ```javascript
-import { generateRandomQuery } from "this-library";
+const { buildSchema, print } = require("graphql");
+const { generateRandomQuery } = require("./lib/index");
+
+const schema = `
+  type Query {
+    getUser(name: String!): User
+    getCompany(companyName: String!): Company
+  }
+
+  type User {
+    firstName: String
+    lastName: String
+    employer: Company
+    friends: [User]
+  }
+
+  type Company {
+    name: String
+    CEO: User
+    employees: [User]
+  }
+`;
 
 const configuration = {
-  depthProbability: 0.1,
-  breadthProbability: 0.2,
+  depthProbability: 0.5,
+  breadthProbability: 0.5,
   providerMap: {
-    "*__marketplaceCategory__slug": (providedValues) => {
-      return "testing";
+    "*__*__name": () => {
+      const nameList = ["Alfred", "Barbara", "Charles", "Dorothy"];
+
+      return nameList[Math.floor(Math.random() * nameList.length)];
+    },
+    "*__*__companyName": () => {
+      const companyNameList = [
+        "All Systems Go",
+        "Business Brothers",
+        "Corporate Comglomerate Company",
+        "Data Defenders",
+      ];
+
+      return companyNameList[
+        Math.floor(Math.random() * companyNameList.length)
+      ];
     },
   },
 };
 
 const { queryDocument, variableValues, seed } = generateRandomQuery(
-  gitHubSchema,
+  buildSchema(schema),
   configuration
 );
-/**
- * Printing the queryDocument with graphql.print(queryDocument):
- *
- *   query RandomQuery($Query__marketplaceCategory__slug: String!) {
- *     marketplaceCategory(slug: $Query__marketplaceCategory__slug) {
- *       howItWorks
- *       name
- *       secondaryListingCount
- *     }
- *   }
- *
- * ...and the variableValues would be:
- *
- *   {
- *     "Query__marketplaceCategory__slug": "testing"
- *   }
- */
+
+console.log(print(queryDocument));
+console.log(variableValues);
 ```
 
 ## Generating random queries
