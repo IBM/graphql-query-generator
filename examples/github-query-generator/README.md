@@ -23,20 +23,20 @@ GITHUB_ACCESS_TOKEN={your access token}
 Use the `getGitHubQueryGenerator()` factory method to create a `GitHubQueryGenerator` object, which can be used to generate queries.
 
 ```javascript
-require("dotenv").config();
+require("dotenv").config()
 
-const { getGitHubQueryGenerator } = require("./lib/index");
-const { print } = require("graphql");
+const { getGitHubQueryGenerator } = require("./lib/index")
+const { print } = require("graphql")
 
 getGitHubQueryGenerator(process.env.GITHUB_ACCESS_TOKEN).then(
   (queryGenerator) => {
-    const query = queryGenerator.generateRandomGitHubQuery();
-    const { queryDocument, variableValues } = query;
+    const query = queryGenerator.generateRandomGitHubQuery()
+    const { queryDocument, variableValues } = query
 
-    console.log(print(queryDocument));
-    console.log(JSON.stringify(variableValues, null, 2));
+    console.log(print(queryDocument))
+    console.log(JSON.stringify(variableValues, null, 2))
   }
-);
+)
 ```
 
 ### Disclaimer

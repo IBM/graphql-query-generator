@@ -105,7 +105,7 @@ Example:
 ```javascript
 const cfg = {
   'depthProbability':        0.5,
-  'breadthProbability:       0.5,
+  'breadthProbability':      0.5,
   'maxDepth':                5,
   'ignoreOptionalArguments': true,
   'argumentsToIgnore':       [],
@@ -115,7 +115,7 @@ const cfg = {
   'considerUnions':          false,
   'seed':                    1,
   'pickNestedQueryField':    false
-};
+}
 ```
 
 ### Provider map
