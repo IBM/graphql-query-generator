@@ -1,6 +1,6 @@
 # GraphQL Query Generator
 
-This library will generate randomized GraphQL queries from a given schema.
+This library will generate randomized [GraphQL](https://graphql.org/) queries from a given schema.
 
 It can be used in a few ways:
 
@@ -21,8 +21,9 @@ We provide sample query generators for the following APIs:
 All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). _Providers_ can be passed to provide values for these variables. For example:
 
 ```javascript
+const { generateRandomQuery } = require("ibm-graphql-query-generator")
+
 const { buildSchema, print } = require("graphql")
-const { generateRandomQuery } = require("./lib/index")
 
 const schema = `
   type Query {
@@ -58,7 +59,7 @@ const configuration = {
         "All Systems Go",
         "Business Brothers",
         "Corporate Comglomerate Company",
-        "Data Defenders",
+        "Data Defenders"
       ]
 
       return companyNameList[
@@ -94,7 +95,7 @@ Functions of this library accept a configuration object with the following prope
 - `ignoreOptionalArguments` (type: `boolean`, default: `true`): If set to `true`, non-mandatory arguments will not be included in the generated query / mutation.
 - `argumentsToIgnore` (type: `string[]`, default: `[]`): List of argument names that should be ignored in any case. If non-null arguments are configured to be ignored, an error will be thrown.
 - `argumentsToConsider` (type: `string[]`, default: `[]`): List of argument names that should be considered, even if the argument is optional and `ignoreOptionalArguments` is set to `true`.
-- `providerMap` (type: `{[varNameQuery: string] : any}`, default: `{'*__*__*': null}`): Map of values or functions to provide values for the variables present in the generated query / mutation. See details below.
+- `providerMap` (type: `{[varNameQuery: string]: any | ProviderFunction }`, default: `{'*__*__*': null}`): Map of values or functions to provide values for the variables present in the generated query / mutation. See details below.
 - `considerInterfaces` (type: `boolean`, default: `false`): Create queries containing interfaces (by calling fields in the interfaces and/or creating fragments on objects implementing the interfaces)
 - `considerUnions` (type: `boolean`, default: `false`): Create queries containing unions (by creating fragments on objects of the unions)
 - `seed` (type: `number`, optional): Allows the generator to produce queries deterministically based on a random number generator seed. If no seed is provided, a random seed will be provided. The seed that is used to produce the query, whether user-provided or randomly generated, will be included in the output.
@@ -110,7 +111,7 @@ const cfg = {
   'ignoreOptionalArguments': true,
   'argumentsToIgnore':       [],
   'argumentsToConsider':     [],
-  'providerMap':             {'*__*_*': null},
+  'providerMap':             {'*__*__*': null},
   'considerInterfaces':      false,
   'considerUnions':          false,
   'seed':                    1,
@@ -140,7 +141,7 @@ The keys of the `providerMap` are either the exact name of the variable or a wil
 
 The values of the `providerMap` are either the concrete argument values, or a function that will be invoked to provide that value. A provider function will get passed a map of all already provided variable values, which allows to provide values based on previous ones. It will also get passed the argument type (as a `GraphQLNamedType`) as a second argument.
 
-This library also exposes a function `matchVarName(query: string, candidates: string[]) : string` that, from a given list of variable names and/or variable name queries, finds the one matching the given variable name or query.
+This library also exposes a function `matchVarName(query: string, candidates: string[]): string` that, from a given list of variable names and/or variable name queries, finds the one matching the given variable name or query.
 
 Note that for variables with an [enumeration type](https://graphql.org/learn/schema/#enumeration-types), this lirbrary automatically chooses one value at random.
 

@@ -4,6 +4,4 @@ export {
   Configuration
 } from './generate-query'
 
-export {
-  matchVarName
-} from './provide-variables'
+export { matchVarName } from './provide-variables'

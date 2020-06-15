@@ -19,19 +19,24 @@ import {
 
 import * as seedrandom from 'seedrandom'
 
-import { ProviderMap, getProviderValue, isEnumType, getRandomEnum } from './provide-variables'
+import {
+  ProviderMap,
+  getProviderValue,
+  isEnumType,
+  getRandomEnum
+} from './provide-variables'
 
 export type Configuration = {
-  depthProbability?: number | ((depth: number) => number),
-  breadthProbability?: number | ((depth: number) => number),
-  maxDepth?: number,
-  ignoreOptionalArguments?: boolean,
-  argumentsToIgnore?: string[],
-  argumentsToConsider?: string[],
-  providerMap?: ProviderMap,
-  considerInterfaces?: boolean,
-  considerUnions?: boolean,
-  seed?: number,
+  depthProbability?: number | ((depth: number) => number)
+  breadthProbability?: number | ((depth: number) => number)
+  maxDepth?: number
+  ignoreOptionalArguments?: boolean
+  argumentsToIgnore?: string[]
+  argumentsToConsider?: string[]
+  providerMap?: ProviderMap
+  considerInterfaces?: boolean
+  considerUnions?: boolean
+  seed?: number
   pickNestedQueryField?: boolean
 }
 
@@ -43,7 +48,7 @@ type InternalConfiguration = Configuration & {
   resolveCount: number
 }
 
-const DEFAULT_CONFIG : Configuration = {
+const DEFAULT_CONFIG: Configuration = {
   depthProbability: 0.5,
   breadthProbability: 0.5,
   maxDepth: 5,
@@ -56,7 +61,7 @@ const DEFAULT_CONFIG : Configuration = {
 }
 
 // Default location
-const loc : Location = {
+const loc: Location = {
   start: 0,
   end: 0,
   startToken: null,
@@ -64,7 +69,7 @@ const loc : Location = {
   source: null
 }
 
-function getDocumentDefinition (definitions) : DocumentNode {
+function getDocumentDefinition(definitions): DocumentNode {
   return {
     kind: Kind.DOCUMENT,
     definitions,
@@ -72,23 +77,25 @@ function getDocumentDefinition (definitions) : DocumentNode {
   }
 }
 
-function getQueryOperationDefinition (
+function getQueryOperationDefinition(
   schema: GraphQLSchema,
   config: InternalConfiguration
-) : {
-  queryDocument: OperationDefinitionNode,
-  variableValues: {[varName: string] : any}
- } {
+): {
+  queryDocument: OperationDefinitionNode
+  variableValues: { [varName: string]: any }
+} {
   const node = schema.getQueryType().astNode
   const {
     selectionSet,
     variableDefinitionsMap,
     variableValues
   } = getSelectionSetAndVars(schema, node, config)
-  
+
   // Throw error if query would be empty
   if (selectionSet.selections.length === 0) {
-    throw new Error(`Could not create query - no selection was possible at the root level`)
+    throw new Error(
+      `Could not create query - no selection was possible at the root level`
+    )
   }
 
   return {
@@ -107,9 +114,9 @@ function getQueryOperationDefinition (
 function getMutationOperationDefinition(
   schema: GraphQLSchema,
   config: InternalConfiguration
-) : {
-  mutationDocument: OperationDefinitionNode,
-  variableValues: {[varName: string] : any}
+): {
+  mutationDocument: OperationDefinitionNode
+  variableValues: { [varName: string]: any }
 } {
   const node = schema.getMutationType().astNode
   const {
@@ -117,10 +124,12 @@ function getMutationOperationDefinition(
     variableDefinitionsMap,
     variableValues
   } = getSelectionSetAndVars(schema, node, config)
-  
+
   // Throw error if mutation would be empty
   if (selectionSet.selections.length === 0) {
-    throw new Error(`Could not create mutation - no selection was possible at the root level`)
+    throw new Error(
+      `Could not create mutation - no selection was possible at the root level`
+    )
   }
 
   return {
@@ -136,7 +145,7 @@ function getMutationOperationDefinition(
   }
 }
 
-export function getTypeName (type: TypeNode) : string {
+export function getTypeName(type: TypeNode): string {
   if (type.kind === Kind.NAMED_TYPE) {
     return type.name.value
   } else if (type.kind === Kind.LIST_TYPE) {
@@ -148,35 +157,51 @@ export function getTypeName (type: TypeNode) : string {
   }
 }
 
-function isMandatoryType (type: TypeNode) : boolean {
+function isMandatoryType(type: TypeNode): boolean {
   return type.kind === Kind.NON_NULL_TYPE
 }
 
-function getName (name: string) : NameNode {
+function getName(name: string): NameNode {
   return {
     kind: Kind.NAME,
     value: name
   }
 }
 
-function isObjectField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
+function isObjectField(
+  field: FieldDefinitionNode,
+  schema: GraphQLSchema
+): boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
-  return typeof ast !== 'undefined' && ast.kind === Kind.OBJECT_TYPE_DEFINITION 
+  return typeof ast !== 'undefined' && ast.kind === Kind.OBJECT_TYPE_DEFINITION
 }
 
-function isInterfaceField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
+function isInterfaceField(
+  field: FieldDefinitionNode,
+  schema: GraphQLSchema
+): boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
-  return typeof ast !== 'undefined' && ast.kind === Kind.INTERFACE_TYPE_DEFINITION
+  return (
+    typeof ast !== 'undefined' && ast.kind === Kind.INTERFACE_TYPE_DEFINITION
+  )
 }
 
-function isUnionField (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
+function isUnionField(
+  field: FieldDefinitionNode,
+  schema: GraphQLSchema
+): boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
   return typeof ast !== 'undefined' && ast.kind === Kind.UNION_TYPE_DEFINITION
 }
 
-function considerArgument (arg: InputValueDefinitionNode, config: InternalConfiguration) : boolean {
+function considerArgument(
+  arg: InputValueDefinitionNode,
+  config: InternalConfiguration
+): boolean {
   const isArgumentToIgnore = config.argumentsToIgnore.includes(arg.name.value)
-  const isArgumentToConsider = config.argumentsToConsider.includes(arg.name.value)
+  const isArgumentToConsider = config.argumentsToConsider.includes(
+    arg.name.value
+  )
   const isMand = isMandatoryType(arg.type)
   const isOptional = !isMand
 
@@ -207,82 +232,99 @@ function considerArgument (arg: InputValueDefinitionNode, config: InternalConfig
   }
 }
 
-function fieldHasLeafs (field: FieldDefinitionNode, schema: GraphQLSchema) : boolean {
+function fieldHasLeafs(
+  field: FieldDefinitionNode,
+  schema: GraphQLSchema
+): boolean {
   const ast = schema.getType(getTypeName(field.type)).astNode
-  if (ast.kind === Kind.OBJECT_TYPE_DEFINITION || ast.kind === Kind.INTERFACE_TYPE_DEFINITION) {
-    return ast.fields.some(child => {
+  if (
+    ast.kind === Kind.OBJECT_TYPE_DEFINITION ||
+    ast.kind === Kind.INTERFACE_TYPE_DEFINITION
+  ) {
+    return ast.fields.some((child) => {
       const childAst = schema.getType(getTypeName(child.type)).astNode
-      return typeof childAst === 'undefined' ||
+      return (
+        typeof childAst === 'undefined' ||
         childAst.kind === Kind.SCALAR_TYPE_DEFINITION
+      )
     })
   } else if (ast.kind === Kind.UNION_TYPE_DEFINITION) {
-    return ast.types.some((child => {
-      let unionNamedTypes = (schema.getType(child.name.value) as GraphQLObjectType).astNode.fields
-    
-      return unionNamedTypes.some(child => {
+    return ast.types.some((child) => {
+      let unionNamedTypes = (schema.getType(
+        child.name.value
+      ) as GraphQLObjectType).astNode.fields
+
+      return unionNamedTypes.some((child) => {
         const childAst = schema.getType(getTypeName(child.type)).astNode
-        return typeof childAst === 'undefined' ||
+        return (
+          typeof childAst === 'undefined' ||
           childAst.kind === Kind.SCALAR_TYPE_DEFINITION
+        )
       })
-    }))
+    })
   }
 
   return false
 }
 
-function getRandomFields (
+function getRandomFields(
   fields: ReadonlyArray<FieldDefinitionNode>,
   config: InternalConfiguration,
   schema: GraphQLSchema,
   depth: number
-) : ReadonlyArray<FieldDefinitionNode> {
+): ReadonlyArray<FieldDefinitionNode> {
   const results = []
 
   // Create lists of nested and flat fields to pick from
-  let nested 
+  let nested
   let flat
   if (config.considerInterfaces && config.considerUnions) {
     nested = fields.filter((field) => {
-      return isObjectField(field, schema) || isInterfaceField(field, schema) || isUnionField(field, schema)
+      return (
+        isObjectField(field, schema) ||
+        isInterfaceField(field, schema) ||
+        isUnionField(field, schema)
+      )
     })
 
     flat = fields.filter((field) => {
-      return !(isObjectField(field, schema) || isInterfaceField(field, schema) || isUnionField(field, schema))
+      return !(
+        isObjectField(field, schema) ||
+        isInterfaceField(field, schema) ||
+        isUnionField(field, schema)
+      )
+    })
+  } else if (config.considerInterfaces! && config.considerUnions) {
+    fields = fields.filter((field) => {
+      return !isInterfaceField(field, schema)
     })
 
-  } else if (config.considerInterfaces! && config.considerUnions) {
-    fields = fields.filter((field => {
-      return !isInterfaceField(field, schema)
-    }))
-
     nested = fields.filter((field) => {
-      return isObjectField(field, schema) || isUnionField(field, schema) 
+      return isObjectField(field, schema) || isUnionField(field, schema)
     })
 
     flat = fields.filter((field) => {
       return !(isObjectField(field, schema) || isUnionField(field, schema))
     })
-
   } else if (config.considerInterfaces && config.considerUnions!) {
-    fields = fields.filter((field => {
+    fields = fields.filter((field) => {
       return !isUnionField(field, schema)
-    }))
+    })
 
     nested = fields.filter((field) => {
-      return isObjectField(field, schema) || isInterfaceField(field, schema) 
+      return isObjectField(field, schema) || isInterfaceField(field, schema)
     })
 
     flat = fields.filter((field) => {
       return !(isObjectField(field, schema) || isInterfaceField(field, schema))
     })
-
   } else {
-    fields = fields.filter((field => {
+    fields = fields.filter((field) => {
       return !(isInterfaceField(field, schema) || isUnionField(field, schema))
-    }))
+    })
 
     nested = fields.filter((field) => {
-      return isObjectField(field, schema) 
+      return isObjectField(field, schema)
     })
 
     flat = fields.filter((field) => {
@@ -292,25 +334,30 @@ function getRandomFields (
 
   // Filter out fields that only have nested subfields
   if (depth + 2 === config.maxDepth) {
-    nested = nested.filter(field => fieldHasLeafs(field, schema))
+    nested = nested.filter((field) => fieldHasLeafs(field, schema))
   }
   const nextIsLeaf = depth + 1 === config.maxDepth
 
-  const pickNested = typeof config.depthProbability === 'number'
-    ? random(config) <= config.depthProbability
-    : random(config) <= config.depthProbability(depth)
+  const pickNested =
+    typeof config.depthProbability === 'number'
+      ? random(config) <= config.depthProbability
+      : random(config) <= config.depthProbability(depth)
 
   // If we decide to pick nested, choose one nested field (if one exists)...
-  if ((pickNested && nested.length > 0 && !nextIsLeaf) || (depth === 0 && config.pickNestedQueryField)) {
+  if (
+    (pickNested && nested.length > 0 && !nextIsLeaf) ||
+    (depth === 0 && config.pickNestedQueryField)
+  ) {
     let nestedIndex = Math.floor(random(config) * nested.length)
     results.push(nested[nestedIndex])
     nested.splice(nestedIndex, 1)
 
     // ...and possibly choose more
-    nested.forEach(field => {
-      const pickNested = typeof config.breadthProbability === 'number'
-        ? random(config) <= config.breadthProbability
-        : random(config) <= config.breadthProbability(depth)
+    nested.forEach((field) => {
+      const pickNested =
+        typeof config.breadthProbability === 'number'
+          ? random(config) <= config.breadthProbability
+          : random(config) <= config.breadthProbability(depth)
       if (pickNested) {
         results.push(field)
       }
@@ -318,10 +365,11 @@ function getRandomFields (
   }
 
   // Pick flat fields based on the breadth probability
-  flat.forEach(field => {
-    const pickFlat = typeof config.breadthProbability === 'number'
-      ? random(config) <= config.breadthProbability
-      : random(config) <= config.breadthProbability(depth)
+  flat.forEach((field) => {
+    const pickFlat =
+      typeof config.breadthProbability === 'number'
+        ? random(config) <= config.breadthProbability
+        : random(config) <= config.breadthProbability(depth)
     if (pickFlat) {
       results.push(field)
     }
@@ -333,19 +381,26 @@ function getRandomFields (
     if (!nextIsLeaf) {
       const forcedIndex = Math.floor(random(config) * fields.length)
       results.push(fields[forcedIndex])
-    // ...otherwise, we HAVE TO choose a flat field:
+      // ...otherwise, we HAVE TO choose a flat field:
     } else if (flat.length > 0) {
       const forcedFlatIndex = Math.floor(random(config) * flat.length)
       results.push(flat[forcedFlatIndex])
     } else {
-      throw new Error(`Cannot pick field from: ${fields.map(fd => fd.name.value).join(', ')}`)
+      throw new Error(
+        `Cannot pick field from: ${fields
+          .map((fd) => fd.name.value)
+          .join(', ')}`
+      )
     }
   }
 
   return results
 }
 
-function getVariableDefinition (name: string, type: TypeNode) : VariableDefinitionNode {
+function getVariableDefinition(
+  name: string,
+  type: TypeNode
+): VariableDefinitionNode {
   return {
     kind: Kind.VARIABLE_DEFINITION,
     type: type,
@@ -354,9 +409,9 @@ function getVariableDefinition (name: string, type: TypeNode) : VariableDefiniti
       name: getName(name)
     }
   }
-} 
+}
 
-function getVariable (argName: string, varName: string) : ArgumentNode {
+function getVariable(argName: string, varName: string): ArgumentNode {
   return {
     kind: Kind.ARGUMENT,
     loc,
@@ -368,29 +423,33 @@ function getVariable (argName: string, varName: string) : ArgumentNode {
   }
 }
 
-function getNextNodefactor (variableValues: {[name: string] : any}) : number {
+function getNextNodefactor(variableValues: { [name: string]: any }): number {
   if (typeof variableValues['first'] === 'number') {
     variableValues['first']
   }
   return 1
 }
 
-function getArgsAndVars (
+function getArgsAndVars(
   allArgs: ReadonlyArray<InputValueDefinitionNode>,
   nodeName: string,
   fieldName: string,
   config: InternalConfiguration,
   schema: GraphQLSchema,
-  providedValues: {[varName: string] : any}
-) : {
-  args: ArgumentNode[],
-  variableDefinitionsMap: {[varName: string] : VariableDefinitionNode},
-  variableValues: {[varName: string] : any}
+  providedValues: { [varName: string]: any }
+): {
+  args: ArgumentNode[]
+  variableDefinitionsMap: { [varName: string]: VariableDefinitionNode }
+  variableValues: { [varName: string]: any }
 } {
-  const args : ArgumentNode[] = []
+  const args: ArgumentNode[] = []
 
-  const variableDefinitionsMap : {[varName: string] : VariableDefinitionNode} = {}
-  const requiredArguments = allArgs.filter(arg => considerArgument(arg, config))
+  const variableDefinitionsMap: {
+    [varName: string]: VariableDefinitionNode
+  } = {}
+  const requiredArguments = allArgs.filter((arg) =>
+    considerArgument(arg, config)
+  )
   requiredArguments.forEach((arg) => {
     const varName = `${nodeName}__${fieldName}__${arg.name.value}`
     args.push(getVariable(arg.name.value, varName))
@@ -406,7 +465,7 @@ function getArgsAndVars (
       typeFieldName,
       config,
       providedValues
-    ) as {[varName: string] : any}
+    ) as { [varName: string]: any }
 
     // Map to full type__field__argument provider name
     if (providedVariableValues) {
@@ -423,10 +482,12 @@ function getArgsAndVars (
       providedVariableValues = temp
     }
 
-    const variableValues : {[varName: string] : any} = providedVariableValues ? providedVariableValues : {}
+    const variableValues: { [varName: string]: any } = providedVariableValues
+      ? providedVariableValues
+      : {}
 
     // Check for type__field__argument providers (and overwrite if applicable)
-    requiredArguments.forEach(arg => {
+    requiredArguments.forEach((arg) => {
       const varName = `${typeFieldName}__${arg.name.value}`
       const argType = schema.getType(getTypeName(arg.type))
 
@@ -436,56 +497,60 @@ function getArgsAndVars (
         const providedValue = getProviderValue(
           varName,
           config,
-          {...variableValues, ...providedValues},
+          { ...variableValues, ...providedValues },
           argType
         ) as any
 
         if (providedValue) {
           variableValues[varName] = providedValue
         } else if (!variableValues[varName]) {
-          throw new Error(`No provider found for "${varName}" in ` +
-            `${Object.keys(config.providerMap).join(', ')}. ` +
-            `Consider applying wildcard provider with "*__*" or "*__*__*"`)
+          throw new Error(
+            `No provider found for "${varName}" in ` +
+              `${Object.keys(config.providerMap).join(', ')}. ` +
+              `Consider applying wildcard provider with "*__*" or "*__*__*"`
+          )
         }
       }
     })
 
     return { args, variableDefinitionsMap, variableValues }
 
-  // This is a special case allowing the user to generate a query without caring for argument values
+    // This is a special case allowing the user to generate a query without caring for argument values
   } else {
-    const variableValues : {[varName: string] : any} = {}
+    const variableValues: { [varName: string]: any } = {}
 
-    requiredArguments.forEach(arg => {
+    requiredArguments.forEach((arg) => {
       const varName = `${nodeName}__${fieldName}__${arg.name.value}`
       variableValues[varName] = null
     })
 
     return {
-      args, 
-      variableDefinitionsMap, 
+      args,
+      variableDefinitionsMap,
       variableValues
     }
   }
 }
-    
+
 function getSelectionSetAndVars(
   schema: GraphQLSchema,
   node: DefinitionNode,
   config: InternalConfiguration,
   depth: number = 0
-) : {
-  selectionSet: SelectionSetNode,
+): {
+  selectionSet: SelectionSetNode
   variableDefinitionsMap: {
-    [variableName: string] : VariableDefinitionNode
-  },
-  variableValues: {
-    [variableName: string] : any
+    [variableName: string]: VariableDefinitionNode
   }
- } {
-  let selections : SelectionNode[] = []
-  let variableDefinitionsMap : {[variableName: string] : VariableDefinitionNode} = {}
-  let variableValues : {[variableName: string] : any} = {}
+  variableValues: {
+    [variableName: string]: any
+  }
+} {
+  let selections: SelectionNode[] = []
+  let variableDefinitionsMap: {
+    [variableName: string]: VariableDefinitionNode
+  } = {}
+  let variableValues: { [variableName: string]: any } = {}
 
   // Abort at leaf nodes:
   if (depth === config.maxDepth) {
@@ -499,10 +564,10 @@ function getSelectionSetAndVars(
   if (node.kind === Kind.OBJECT_TYPE_DEFINITION) {
     let fields = getRandomFields(node.fields, config, schema, depth)
 
-    fields.forEach(field => {
+    fields.forEach((field) => {
       // Recurse, if field has children:
       const nextNode = schema.getType(getTypeName(field.type)).astNode
-      let selectionSet : SelectionSetNode = undefined
+      let selectionSet: SelectionSetNode = undefined
       if (typeof nextNode !== 'undefined') {
         const res = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
 
@@ -512,8 +577,11 @@ function getSelectionSetAndVars(
         config.typeCount += config.nodeFactor
 
         selectionSet = res.selectionSet
-        variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
-        variableValues = {...variableValues, ...res.variableValues}
+        variableDefinitionsMap = {
+          ...variableDefinitionsMap,
+          ...res.variableDefinitionsMap
+        }
+        variableValues = { ...variableValues, ...res.variableValues }
       }
 
       const avs = getArgsAndVars(
@@ -524,8 +592,11 @@ function getSelectionSetAndVars(
         schema,
         variableValues
       )
-      variableDefinitionsMap = {...variableDefinitionsMap, ...avs.variableDefinitionsMap}
-      variableValues = {...variableValues, ...avs.variableValues}
+      variableDefinitionsMap = {
+        ...variableDefinitionsMap,
+        ...avs.variableDefinitionsMap
+      }
+      variableValues = { ...variableValues, ...avs.variableValues }
 
       selections.push({
         kind: Kind.FIELD,
@@ -534,25 +605,27 @@ function getSelectionSetAndVars(
         arguments: avs.args
       })
     })
-
   } else if (node.kind === Kind.INTERFACE_TYPE_DEFINITION) {
     let fields = getRandomFields(node.fields, config, schema, depth)
 
-    fields.forEach(field => {
+    fields.forEach((field) => {
       // Recurse, if field has children:
       const nextNode = schema.getType(getTypeName(field.type)).astNode
-      let selectionSet : SelectionSetNode = undefined
+      let selectionSet: SelectionSetNode = undefined
       if (typeof nextNode !== 'undefined') {
         const res = getSelectionSetAndVars(schema, nextNode, config, depth + 1)
-        
+
         // Update counts and nodeFactor:
         config.resolveCount += config.nodeFactor
         config.nodeFactor *= getNextNodefactor(res.variableValues)
         config.typeCount += config.nodeFactor
-        
+
         selectionSet = res.selectionSet
-        variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
-        variableValues = {...variableValues, ...res.variableValues}
+        variableDefinitionsMap = {
+          ...variableDefinitionsMap,
+          ...res.variableDefinitionsMap
+        }
+        variableValues = { ...variableValues, ...res.variableValues }
       }
 
       const avs = getArgsAndVars(
@@ -563,8 +636,11 @@ function getSelectionSetAndVars(
         schema,
         variableValues
       )
-      variableDefinitionsMap = {...variableDefinitionsMap, ...avs.variableDefinitionsMap}
-      variableValues = {...variableValues, ...avs.variableValues}
+      variableDefinitionsMap = {
+        ...variableDefinitionsMap,
+        ...avs.variableDefinitionsMap
+      }
+      variableValues = { ...variableValues, ...avs.variableValues }
 
       selections.push({
         kind: Kind.FIELD,
@@ -574,34 +650,47 @@ function getSelectionSetAndVars(
       })
     })
 
-        // Get all objects that implement an interface
-        let objectsImplementingInterface = Object.values(schema.getTypeMap()).filter((namedType) => {
-          if (namedType.astNode && namedType.astNode.kind === "ObjectTypeDefinition") {
-            let interfaceNames = namedType.astNode.interfaces.map((interfaceNamedType) => {
-              return interfaceNamedType.name.value
-            })
-    
-            if (interfaceNames.includes(node.name.value)) {
-              return true
-            }
+    // Get all objects that implement an interface
+    let objectsImplementingInterface = Object.values(
+      schema.getTypeMap()
+    ).filter((namedType) => {
+      if (
+        namedType.astNode &&
+        namedType.astNode.kind === 'ObjectTypeDefinition'
+      ) {
+        let interfaceNames = namedType.astNode.interfaces.map(
+          (interfaceNamedType) => {
+            return interfaceNamedType.name.value
           }
-    
-          return false
-        })
+        )
+
+        if (interfaceNames.includes(node.name.value)) {
+          return true
+        }
+      }
+
+      return false
+    })
 
     // Randomly select named types from the union
-    let pickObjectsImplementingInterface = objectsImplementingInterface.filter(() => {
-      if (typeof config.breadthProbability === 'number') {
-        return random(config) <= config.breadthProbability
-      } else {
-        return random(config) <= config.breadthProbability(depth)
+    let pickObjectsImplementingInterface = objectsImplementingInterface.filter(
+      () => {
+        if (typeof config.breadthProbability === 'number') {
+          return random(config) <= config.breadthProbability
+        } else {
+          return random(config) <= config.breadthProbability(depth)
+        }
       }
-    })
+    )
 
     // If no named types are selected, select any one
     if (pickObjectsImplementingInterface.length === 0) {
-      const forcedCleanIndex = Math.floor(random(config) * objectsImplementingInterface.length)
-      pickObjectsImplementingInterface.push(objectsImplementingInterface[forcedCleanIndex])
+      const forcedCleanIndex = Math.floor(
+        random(config) * objectsImplementingInterface.length
+      )
+      pickObjectsImplementingInterface.push(
+        objectsImplementingInterface[forcedCleanIndex]
+      )
     }
 
     pickObjectsImplementingInterface.forEach((namedType) => {
@@ -610,31 +699,35 @@ function getSelectionSetAndVars(
 
         // Unions can only contain objects
         if (type.kind === Kind.OBJECT_TYPE_DEFINITION) {
+          // Get selections
+          let selectionSet: SelectionSetNode = undefined
+          const res = getSelectionSetAndVars(schema, type, config, depth)
+          selectionSet = res.selectionSet
+          variableDefinitionsMap = {
+            ...variableDefinitionsMap,
+            ...res.variableDefinitionsMap
+          }
+          variableValues = { ...variableValues, ...res.variableValues }
 
-            // Get selections
-            let selectionSet : SelectionSetNode = undefined
-            const res = getSelectionSetAndVars(schema, type, config, depth)
-            selectionSet = res.selectionSet
-            variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
-            variableValues = {...variableValues, ...res.variableValues}
+          let fragment: InlineFragmentNode = {
+            kind: Kind.INLINE_FRAGMENT,
+            typeCondition: {
+              kind: Kind.NAMED_TYPE,
+              name: {
+                kind: Kind.NAME,
+                value: type.name.value
+              }
+            },
+            selectionSet: selectionSet
+          }
 
-            let fragment : InlineFragmentNode = {
-              kind: Kind.INLINE_FRAGMENT,
-              typeCondition: {
-                kind: Kind.NAMED_TYPE,
-                name: {
-                  kind: Kind.NAME,
-                  value: type.name.value
-                }
-              },
-              selectionSet: selectionSet
-            }
-    
-            selections.push(fragment)
+          selections.push(fragment)
         } else {
-          throw Error(`There should only be object types ` + 
-            `in the selectionSet but found: ` + 
-            `"${JSON.stringify(type, null, 2)}"`, )
+          throw Error(
+            `There should only be object types ` +
+              `in the selectionSet but found: ` +
+              `"${JSON.stringify(type, null, 2)}"`
+          )
         }
       } else {
         selections.push({
@@ -646,7 +739,6 @@ function getSelectionSetAndVars(
         })
       }
     })
-
   } else if (node.kind === Kind.UNION_TYPE_DEFINITION) {
     // Get the named types in the union
     let unionNamedTypes = node.types.map((namedTypeNode) => {
@@ -664,7 +756,9 @@ function getSelectionSetAndVars(
 
     // If no named types are selected, select any one
     if (pickUnionNamedTypes.length === 0) {
-      const forcedCleanIndex = Math.floor(random(config) * unionNamedTypes.length)
+      const forcedCleanIndex = Math.floor(
+        random(config) * unionNamedTypes.length
+      )
       pickUnionNamedTypes.push(unionNamedTypes[forcedCleanIndex])
     }
 
@@ -674,31 +768,35 @@ function getSelectionSetAndVars(
 
         // Unions can only contain objects
         if (type.kind === Kind.OBJECT_TYPE_DEFINITION) {
+          // Get selections
+          let selectionSet: SelectionSetNode = undefined
+          const res = getSelectionSetAndVars(schema, type, config, depth)
+          selectionSet = res.selectionSet
+          variableDefinitionsMap = {
+            ...variableDefinitionsMap,
+            ...res.variableDefinitionsMap
+          }
+          variableValues = { ...variableValues, ...res.variableValues }
 
-            // Get selections
-            let selectionSet : SelectionSetNode = undefined
-            const res = getSelectionSetAndVars(schema, type, config, depth)
-            selectionSet = res.selectionSet
-            variableDefinitionsMap = {...variableDefinitionsMap, ...res.variableDefinitionsMap}
-            variableValues = {...variableValues, ...res.variableValues}
+          let fragment: InlineFragmentNode = {
+            kind: Kind.INLINE_FRAGMENT,
+            typeCondition: {
+              kind: Kind.NAMED_TYPE,
+              name: {
+                kind: Kind.NAME,
+                value: type.name.value
+              }
+            },
+            selectionSet: selectionSet
+          }
 
-            let fragment : InlineFragmentNode = {
-              kind: Kind.INLINE_FRAGMENT,
-              typeCondition: {
-                kind: Kind.NAMED_TYPE,
-                name: {
-                  kind: Kind.NAME,
-                  value: type.name.value
-                }
-              },
-              selectionSet: selectionSet
-            }
-    
-            selections.push(fragment)
+          selections.push(fragment)
         } else {
-          throw Error(`There should only be object types ` + 
-            `in the selectionSet but found: ` + 
-            `"${JSON.stringify(type, null, 2)}"`, )
+          throw Error(
+            `There should only be object types ` +
+              `in the selectionSet but found: ` +
+              `"${JSON.stringify(type, null, 2)}"`
+          )
         }
       } else {
         selections.push({
@@ -712,71 +810,83 @@ function getSelectionSetAndVars(
     })
   }
 
-  let aliasIndexes : {[fieldName: string]: number} = {}
-  let cleanselections : SelectionNode[] = []
+  let aliasIndexes: { [fieldName: string]: number } = {}
+  let cleanselections: SelectionNode[] = []
 
   // Ensure unique field names/aliases
   selections.forEach((selectionNode) => {
     if (selectionNode.kind === Kind.FIELD) {
       let fieldName = selectionNode.name.value
       if (fieldName in aliasIndexes) {
-        cleanselections.push({...selectionNode, ...{alias: {
-          kind: Kind.NAME,
-          value: `${fieldName}${aliasIndexes[fieldName]++}`
-        }}})
+        cleanselections.push({
+          ...selectionNode,
+          ...{
+            alias: {
+              kind: Kind.NAME,
+              value: `${fieldName}${aliasIndexes[fieldName]++}`
+            }
+          }
+        })
       } else {
         aliasIndexes[fieldName] = 2
         cleanselections.push(selectionNode)
       }
-
-    } else if (selectionNode.kind === Kind.INLINE_FRAGMENT) { 
-      let cleanFragmentSelections : SelectionNode[] = []
+    } else if (selectionNode.kind === Kind.INLINE_FRAGMENT) {
+      let cleanFragmentSelections: SelectionNode[] = []
       selectionNode.selectionSet.selections.forEach((fragmentSelectionNode) => {
-
         if (fragmentSelectionNode.kind === Kind.FIELD) {
           let fieldName = fragmentSelectionNode.name.value
           if (fieldName in aliasIndexes) {
-            cleanFragmentSelections.push({...fragmentSelectionNode, ...{alias: {
-              kind: Kind.NAME,
-              value: `${fieldName}${aliasIndexes[fieldName]++}`
-            }}})
-
+            cleanFragmentSelections.push({
+              ...fragmentSelectionNode,
+              ...{
+                alias: {
+                  kind: Kind.NAME,
+                  value: `${fieldName}${aliasIndexes[fieldName]++}`
+                }
+              }
+            })
           } else {
             aliasIndexes[fieldName] = 2
             cleanFragmentSelections.push(fragmentSelectionNode)
           }
         }
-      }) 
+      })
 
       selectionNode.selectionSet.selections = cleanFragmentSelections
       cleanselections.push(selectionNode)
     } else {
-      throw Error(`There should not be any fragment spreads in the selectionNode "${JSON.stringify(selectionNode, null, 2)}"`)
+      throw Error(
+        `There should not be any fragment spreads in the selectionNode "${JSON.stringify(
+          selectionNode,
+          null,
+          2
+        )}"`
+      )
     }
   })
 
   return {
-    selectionSet: cleanselections.length > 0
-      ? {
-          kind: Kind.SELECTION_SET,
-          selections: cleanselections
-        }
-      : undefined,
+    selectionSet:
+      cleanselections.length > 0
+        ? {
+            kind: Kind.SELECTION_SET,
+            selections: cleanselections
+          }
+        : undefined,
     variableDefinitionsMap,
     variableValues
   }
 }
 
-export function generateRandomMutation (
+export function generateRandomMutation(
   schema: GraphQLSchema,
   config: Configuration = {}
 ) {
-  const finalConfig : InternalConfiguration = {
-    ...DEFAULT_CONFIG, 
-    ...config, 
-    seed: typeof config.seed !== 'undefined'
-      ? config.seed
-      : Math.random(),
+  const finalConfig: InternalConfiguration = {
+    ...DEFAULT_CONFIG,
+    ...config,
+    seed: typeof config.seed !== 'undefined' ? config.seed : Math.random(),
     nodeFactor: 1,
     typeCount: 0,
     resolveCount: 0
@@ -789,10 +899,10 @@ export function generateRandomMutation (
     }
   }
 
-  const {
-    mutationDocument,
-    variableValues
-  } = getMutationOperationDefinition(schema, finalConfig)
+  const { mutationDocument, variableValues } = getMutationOperationDefinition(
+    schema,
+    finalConfig
+  )
 
   const definitions = [mutationDocument]
 
@@ -803,25 +913,23 @@ export function generateRandomMutation (
   }
 }
 
-export function generateRandomQuery (
+export function generateRandomQuery(
   schema: GraphQLSchema,
   config: Configuration = {}
 ) {
-  const finalConfig : InternalConfiguration = {
-    ...DEFAULT_CONFIG, 
-    ...config, 
-    seed: typeof config.seed !== 'undefined'
-      ? config.seed
-      : Math.random(),
+  const finalConfig: InternalConfiguration = {
+    ...DEFAULT_CONFIG,
+    ...config,
+    seed: typeof config.seed !== 'undefined' ? config.seed : Math.random(),
     nodeFactor: 1,
     typeCount: 0,
     resolveCount: 0
   }
 
-  const {
-    queryDocument,
-    variableValues
-  } = getQueryOperationDefinition(schema, finalConfig)
+  const { queryDocument, variableValues } = getQueryOperationDefinition(
+    schema,
+    finalConfig
+  )
 
   const definitions = [queryDocument]
 

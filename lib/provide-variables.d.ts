@@ -1,5 +1,5 @@
-import { GraphQLNamedType } from "graphql";
-import { Configuration } from "./generate-query";
+import { GraphQLNamedType } from 'graphql';
+import { Configuration } from './generate-query';
 declare type Variables = {
     [varName: string]: any;
 };
@@ -7,7 +7,7 @@ export declare type ProviderFunction = (variables: Variables, argType?: GraphQLN
     [argumentName: string]: any;
 };
 export declare type ProviderMap = {
-    [varNameQuery: string]: string | boolean | number | Date | Object | Array<any> | ProviderFunction;
+    [varNameQuery: string]: any | ProviderFunction;
 };
 export declare function matchVarName(query: string, candidates: string[]): string;
 export declare function getRandomEnum(type: GraphQLNamedType): string;
