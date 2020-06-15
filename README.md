@@ -21,8 +21,8 @@ We provide sample query generators for the following APIs:
 All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). _Providers_ can be passed to provide values for these variables. For example:
 
 ```javascript
-const { buildSchema, print } = require("graphql");
-const { generateRandomQuery } = require("./lib/index");
+const { buildSchema, print } = require("graphql")
+const { generateRandomQuery } = require("./lib/index")
 
 const schema = `
   type Query {
@@ -42,16 +42,16 @@ const schema = `
     CEO: User
     employees: [User]
   }
-`;
+`
 
 const configuration = {
   depthProbability: 0.5,
   breadthProbability: 0.5,
   providerMap: {
     "*__*__name": () => {
-      const nameList = ["Alfred", "Barbara", "Charles", "Dorothy"];
+      const nameList = ["Alfred", "Barbara", "Charles", "Dorothy"]
 
-      return nameList[Math.floor(Math.random() * nameList.length)];
+      return nameList[Math.floor(Math.random() * nameList.length)]
     },
     "*__*__companyName": () => {
       const companyNameList = [
@@ -59,22 +59,22 @@ const configuration = {
         "Business Brothers",
         "Corporate Comglomerate Company",
         "Data Defenders",
-      ];
+      ]
 
       return companyNameList[
         Math.floor(Math.random() * companyNameList.length)
-      ];
+      ]
     },
   },
-};
+}
 
 const { queryDocument, variableValues, seed } = generateRandomQuery(
   buildSchema(schema),
   configuration
-);
+)
 
-console.log(print(queryDocument));
-console.log(variableValues);
+console.log(print(queryDocument))
+console.log(variableValues)
 ```
 
 ## Generating random queries
@@ -122,13 +122,13 @@ const cfg = {
 
 Whenever a randomly generated query or mutation requires an [argument](https://facebook.github.io/graphql/draft/#sec-Language.Arguments), this library exposes that argument as a [variable](https://facebook.github.io/graphql/draft/#sec-Language.Variables). The names of these variables reflect the type and field that the argument applies to, as well as the argument name like so:
 
-```javascript
+```
 <type>__<fieldName>__<argumentName>
 ```
 
 Alternatively, you can match using:
 
-```javascript
+```
 <type>__<fieldName>
 ```
 
