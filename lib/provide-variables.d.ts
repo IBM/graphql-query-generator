@@ -7,7 +7,7 @@ export declare type ProviderFunction = (
   variables: Variables,
   argType?: GraphQLNamedType
 ) =>
-  | any // For type__field__argument providers
+  | any
   | {
       [argumentName: string]: any;
     };
