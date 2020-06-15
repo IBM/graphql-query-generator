@@ -6,6 +6,21 @@
   "contributors": [
     "Alan Cha"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IBM/GraphQL-Query-Generator"
+  },
+  "homepage": "https://github.com/IBM/GraphQL-Query-Generator",
+  "keywords": [
+    "ibm",
+    "graphql",
+    "query",
+    "schema",
+    "generate",
+    "build",
+    "factory",
+    "maker"
+  ],
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
