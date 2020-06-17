@@ -54,7 +54,10 @@ function getProvider(varName: string, providerMap: ProviderMap) {
   if (providerKey) {
     return providerMap[providerKey]
   } else {
-    return null
+    throw new Error(
+      `No provider found for "${varName}" in ` +
+        `${Object.keys(providerMap).join(', ')}.`
+    )
   }
 }
 
@@ -87,16 +90,11 @@ export function getProviderValue(
   providedValues: Variables,
   argType?: GraphQLNamedType
 ) {
-  // If no providerMap was provided, then just create a query with no argument values
-  if (config.providerMap) {
-    const provider = getProvider(varName, config.providerMap)
+  const provider = getProvider(varName, config.providerMap)
 
-    if (typeof provider === 'function') {
-      return (provider as ProviderFunction)(providedValues, argType)
-    } else {
-      return provider
-    }
+  if (typeof provider === 'function') {
+    return (provider as ProviderFunction)(providedValues, argType)
   } else {
-    return null
+    return provider
   }
 }

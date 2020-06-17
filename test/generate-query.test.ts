@@ -1,5 +1,12 @@
 import * as fs from 'fs'
-import { buildSchema, print, validate, DocumentNode, OperationDefinitionNode, DefinitionNode, parse } from 'graphql'
+import {
+  buildSchema,
+  print,
+  validate,
+  DocumentNode,
+  OperationDefinitionNode,
+  DefinitionNode
+} from 'graphql'
 import { Configuration, generateRandomQuery } from '../src/index'
 import { GITHUB_PROVIDERS } from './github-providers'
 
@@ -7,56 +14,62 @@ import { GITHUB_PROVIDERS } from './github-providers'
 const schemaDef = fs.readFileSync('./test/fixtures/schema.graphql').toString()
 const schema = buildSchema(schemaDef)
 
-const schemaDefGitHub = fs.readFileSync('./test/fixtures/github.graphql').toString()
+const schemaDefGitHub = fs
+  .readFileSync('./test/fixtures/github.graphql')
+  .toString()
 const schemaGitHub = buildSchema(schemaDefGitHub)
 
-const schemaDefSimple = fs.readFileSync('./test/fixtures/simple.graphql').toString()
+const schemaDefSimple = fs
+  .readFileSync('./test/fixtures/simple.graphql')
+  .toString()
 const schemaSimple = buildSchema(schemaDefSimple)
 
-function getOperationDefinition (doc: DocumentNode) : OperationDefinitionNode {
-  const opDefs : DefinitionNode[] = doc.definitions.filter(def => {
+function getOperationDefinition(doc: DocumentNode): OperationDefinitionNode {
+  const opDefs: DefinitionNode[] = doc.definitions.filter((def) => {
     return def.kind === 'OperationDefinition'
   })
   return opDefs[0] as OperationDefinitionNode
 }
 
 test(`Obtain random query from example schema`, () => {
-  const config : Configuration = {
+  const config: Configuration = {
     breadthProbability: 0.1,
     depthProbability: 0.1
   }
 
-  const {queryDocument, variableValues} = generateRandomQuery(schema, config)
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
 
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
   const opDef = getOperationDefinition(queryDocument)
-  expect(Object.keys(opDef.variableDefinitions).length)
-    .toEqual(Object.keys(variableValues).length)
+  expect(Object.keys(opDef.variableDefinitions).length).toEqual(
+    Object.keys(variableValues).length
+  )
   const errors = validate(schema, queryDocument)
   expect(errors).toEqual([])
 })
 
 test(`Obtain complete query from example schema`, () => {
-  const config : Configuration = {
+  const config: Configuration = {
     breadthProbability: 1,
     depthProbability: 1,
     maxDepth: 2
   }
 
-  const {queryDocument, variableValues} = generateRandomQuery(schema, config)
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schema, queryDocument)
 
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
-  expect(Object.keys(opDef.variableDefinitions).length)
-    .toEqual(Object.keys(variableValues).length)
+  expect(Object.keys(opDef.variableDefinitions).length).toEqual(
+    Object.keys(variableValues).length
+  )
   expect(errors).toEqual([])
 })
 
 test(`Avoid picking field with only nested subfields when approaching max depth`, () => {
-  const config : Configuration = {
+  const config: Configuration = {
     breadthProbability: 1,
     depthProbability: 1,
     maxDepth: 3,
@@ -64,19 +77,20 @@ test(`Avoid picking field with only nested subfields when approaching max depth`
     considerUnions: true
   }
 
-  const {queryDocument, variableValues} = generateRandomQuery(schema, config)
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schema, queryDocument)
 
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
-  expect(Object.keys(opDef.variableDefinitions).length)
-    .toEqual(Object.keys(variableValues).length)
+  expect(Object.keys(opDef.variableDefinitions).length).toEqual(
+    Object.keys(variableValues).length
+  )
   expect(errors).toEqual([])
 })
 
 test(`Obtain random query from GitHub schema`, () => {
-  const config : Configuration = {
+  const config: Configuration = {
     breadthProbability: 0.5,
     depthProbability: 0.5,
     maxDepth: 10,
@@ -87,24 +101,30 @@ test(`Obtain random query from GitHub schema`, () => {
     seed: 3
   }
 
-  const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
+  const { queryDocument, variableValues } = generateRandomQuery(
+    schemaGitHub,
+    config
+  )
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
   expect(queryDocument).toBeDefined()
-  expect(print(queryDocument).replace(/\s/g, '')).toEqual(`query RandomQuery($Query__codeOfConduct__key: String!) {
+  expect(print(queryDocument).replace(/\s/g, '')).toEqual(
+    `query RandomQuery($Query__codeOfConduct__key: String!) {
     codeOfConduct(key: $Query__codeOfConduct__key) {
       name
       url
     }
-  }`.replace(/\s/g, ''))
-  expect(Object.keys(opDef.variableDefinitions).length)
-    .toEqual(Object.keys(variableValues).length)
+  }`.replace(/\s/g, '')
+  )
+  expect(Object.keys(opDef.variableDefinitions).length).toEqual(
+    Object.keys(variableValues).length
+  )
   expect(errors).toEqual([])
 })
 
 test(`Seeded query generation is deterministic`, () => {
-  const config : Configuration = {
+  const config: Configuration = {
     breadthProbability: 0.5,
     depthProbability: 0.5,
     maxDepth: 10,
@@ -115,24 +135,30 @@ test(`Seeded query generation is deterministic`, () => {
     seed: 3
   }
 
-  const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
+  const { queryDocument, variableValues } = generateRandomQuery(
+    schemaGitHub,
+    config
+  )
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
   expect(queryDocument).toBeDefined()
-  expect(print(queryDocument).replace(/\s/g, '')).toEqual(`query RandomQuery($Query__codeOfConduct__key: String!) {
+  expect(print(queryDocument).replace(/\s/g, '')).toEqual(
+    `query RandomQuery($Query__codeOfConduct__key: String!) {
     codeOfConduct(key: $Query__codeOfConduct__key) {
       name
       url
     }
-  }`.replace(/\s/g, ''))
-  expect(Object.keys(opDef.variableDefinitions).length)
-    .toEqual(Object.keys(variableValues).length)
+  }`.replace(/\s/g, '')
+  )
+  expect(Object.keys(opDef.variableDefinitions).length).toEqual(
+    Object.keys(variableValues).length
+  )
   expect(errors).toEqual([])
 })
 
 test(`Missing provider leads to error`, () => {
-  const config : Configuration = {
+  const config: Configuration = {
     breadthProbability: 0.5,
     depthProbability: 0.5,
     maxDepth: 10,
@@ -141,7 +167,7 @@ test(`Missing provider leads to error`, () => {
     considerInterfaces: true,
     considerUnions: true,
     seed: 3,
-    providerMap: {'blub__blib__blab': 'blob'}
+    providerMap: { blub__blib__blab: 'blob' }
   }
 
   /**
@@ -155,11 +181,48 @@ test(`Missing provider leads to error`, () => {
     }
    */
 
-  expect(() => generateRandomQuery(schemaGitHub, config)).toThrowError(`No provider found for "Query__codeOfConduct__key" in blub__blib__blab. Consider applying wildcard provider with "*__*" or "*__*__*"`)
+  expect(() => generateRandomQuery(schemaGitHub, config)).toThrowError(
+    `No provider found for "Query__codeOfConduct__key" in blub__blib__blab. Consider applying wildcard provider with "*__*" or "*__*__*"`
+  )
+})
+
+test(`Null providers are allowed`, () => {
+  const config: Configuration = {
+    breadthProbability: 0.5,
+    depthProbability: 0.5,
+    maxDepth: 10,
+    ignoreOptionalArguments: true,
+    argumentsToConsider: ['first'],
+    considerInterfaces: true,
+    considerUnions: true,
+    seed: 3,
+    providerMap: { '*__*__*': null }
+  }
+
+  const { queryDocument, variableValues } = generateRandomQuery(
+    schemaGitHub,
+    config
+  )
+  const opDef = getOperationDefinition(queryDocument)
+  const errors = validate(schemaGitHub, queryDocument)
+
+  expect(queryDocument).toBeDefined()
+  expect(print(queryDocument).replace(/\s/g, '')).toEqual(
+    `query RandomQuery($Query__codeOfConduct__key: String!) {
+    codeOfConduct(key: $Query__codeOfConduct__key) {
+      name
+      url
+    }
+  }`.replace(/\s/g, '')
+  )
+  expect(Object.keys(opDef.variableDefinitions).length).toEqual(
+    Object.keys(variableValues).length
+  )
+  expect(errors).toEqual([])
 })
 
 test(`Provide custom provider map for GitHub schema`, () => {
-  const config : Configuration = {
+  const config: Configuration = {
     breadthProbability: 0.2,
     depthProbability: 0.3,
     maxDepth: 7,
@@ -170,19 +233,23 @@ test(`Provide custom provider map for GitHub schema`, () => {
     considerUnions: true
   }
 
-  const {queryDocument, variableValues} = generateRandomQuery(schemaGitHub, config)
+  const { queryDocument, variableValues } = generateRandomQuery(
+    schemaGitHub,
+    config
+  )
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
   expect(queryDocument).toBeDefined()
   expect(print(queryDocument) === '').toEqual(false)
-  expect(Object.keys(opDef.variableDefinitions).length)
-    .toEqual(Object.keys(variableValues).length)
+  expect(Object.keys(opDef.variableDefinitions).length).toEqual(
+    Object.keys(variableValues).length
+  )
   expect(errors).toEqual([])
 })
 
 test(`Utilize type__field provider`, () => {
-  const config : Configuration = {
+  const config: Configuration = {
     breadthProbability: 0.2,
     depthProbability: 0.3,
     maxDepth: 7,
@@ -193,13 +260,17 @@ test(`Utilize type__field provider`, () => {
     considerUnions: true,
     seed: 0.2805754930509623
   }
-  
-  const { queryDocument, variableValues } = generateRandomQuery(schemaGitHub, config)
+
+  const { queryDocument, variableValues } = generateRandomQuery(
+    schemaGitHub,
+    config
+  )
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
   expect(queryDocument).toBeDefined()
-  expect(print(queryDocument).replace(/\s/g,'')).toEqual(`query RandomQuery($Repository__releases__first: Int, $Project__columns__first: Int, $Repository__projects__first: Int, $RepositoryOwner__pinnedRepositories__first: Int, $PullRequest_
+  expect(print(queryDocument).replace(/\s/g, '')).toEqual(
+    `query RandomQuery($Repository__releases__first: Int, $Project__columns__first: Int, $Repository__projects__first: Int, $RepositoryOwner__pinnedRepositories__first: Int, $PullRequest_
   _assignees__first: Int, $User__publicKeys__first: Int, $User__commitComments__first: Int, $User__organization__login: String!, $User__pullRequests__first: Int, $User__starredRepositories__
   first: Int, $User__watching__first: Int, $PullRequest__participants__first: Int, $Repository__deployKeys__first: Int, $Repository__assignableUsers__first: Int, $Repository__collaborators__
   first: Int, $Repository__issueOrPullRequest__number: Int!, $PullRequest__comments__first: Int, $PullRequest__labels__first: Int, $Repository__pullRequest__number: Int!, $Query__repository_
@@ -449,16 +520,18 @@ test(`Utilize type__field provider`, () => {
       pushedAt
       viewerHasStarred
     }
-  }`.replace(/\s/g,''))
+  }`.replace(/\s/g, '')
+  )
 
-  expect(Object.keys(opDef.variableDefinitions).length)
-    .toEqual(Object.keys(variableValues).length)
+  expect(Object.keys(opDef.variableDefinitions).length).toEqual(
+    Object.keys(variableValues).length
+  )
   expect(errors).toEqual([])
   expect(print(queryDocument).trim().split(`\n`).length).toBe(247)
 })
 
 test(`Provided variables are passed to providers`, () => {
-  const config : Configuration = {
+  const config: Configuration = {
     breadthProbability: 1,
     depthProbability: 1,
     providerMap: {
@@ -477,20 +550,28 @@ test(`Provided variables are passed to providers`, () => {
     }
   }
 
-  const {queryDocument, variableValues} = generateRandomQuery(schemaSimple, config)
+  const { queryDocument, variableValues } = generateRandomQuery(
+    schemaSimple,
+    config
+  )
   const errors = validate(schemaSimple, queryDocument)
 
   expect(queryDocument).toBeDefined()
-  expect(print(queryDocument).replace(/\s/g,'')).toEqual(`query RandomQuery($Query__repository__name: String!, $Query__repository__owner: String!) {
+  expect(print(queryDocument).replace(/\s/g, '')).toEqual(
+    `query RandomQuery($Query__repository__name: String!, $Query__repository__owner: String!) {
     name
     repository(name: $Query__repository__name, owner: $Query__repository__owner)
-  }`.replace(/\s/g,''))
+  }`.replace(/\s/g, '')
+  )
   expect(errors).toEqual([])
-  expect(variableValues['Query__repository__name'] != variableValues['Query__repository__owner']).toBeTruthy()
+  expect(
+    variableValues['Query__repository__name'] !=
+      variableValues['Query__repository__owner']
+  ).toBeTruthy()
 })
 
 test(`Counts are as expected`, () => {
-  const config : Configuration = {
+  const config: Configuration = {
     breadthProbability: 0.5,
     depthProbability: 0.5,
     maxDepth: 10,
@@ -501,12 +582,19 @@ test(`Counts are as expected`, () => {
     seed: 5
   }
 
-  const {queryDocument, variableValues, typeCount, resolveCount, seed} = generateRandomQuery(schemaGitHub, config)
+  const {
+    queryDocument,
+    variableValues,
+    typeCount,
+    resolveCount,
+    seed
+  } = generateRandomQuery(schemaGitHub, config)
   const opDef = getOperationDefinition(queryDocument)
   const errors = validate(schemaGitHub, queryDocument)
 
   expect(queryDocument).toBeDefined()
-  expect(print(queryDocument).replace(/\s/g,'')).toEqual(`query RandomQuery($Query__marketplaceListings__first: Int) {
+  expect(print(queryDocument).replace(/\s/g, '')).toEqual(
+    `query RandomQuery($Query__marketplaceListings__first: Int) {
     marketplaceListings(first: $Query__marketplaceListings__first) {
       edges {
         node {
@@ -553,8 +641,10 @@ test(`Counts are as expected`, () => {
         cursor
       }
     }
-  }`.replace(/\s/g,''))
-  expect(Object.keys(opDef.variableDefinitions).length)
-    .toEqual(Object.keys(variableValues).length)
+  }`.replace(/\s/g, '')
+  )
+  expect(Object.keys(opDef.variableDefinitions).length).toEqual(
+    Object.keys(variableValues).length
+  )
   expect(errors).toEqual([])
 })

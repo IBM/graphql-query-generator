@@ -2,8 +2,8 @@ import { matchVarName } from '../src/index'
 
 test(`Match query against concrete values`, () => {
   const existingVars = {
-    'Query__repository__name': 10,
-    'Some__other__thing': 5
+    Query__repository__name: 10,
+    Some__other__thing: 5
   }
   const key = matchVarName('*__repository__name', Object.keys(existingVars))
   expect(key).toBeDefined()

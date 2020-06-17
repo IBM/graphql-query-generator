@@ -1,3 +1,7 @@
+![GitHub last commit](https://img.shields.io/github/last-commit/ibm/graphql-query-generator.svg?style=flat)
+
+[![npm](https://img.shields.io/npm/v/ibm-graphql-query-generator.svg?style=flat)](https://www.npmjs.com/package/ibm-graphql-query-generator)
+
 # GraphQL Query Generator
 
 This library will generate randomized [GraphQL](https://graphql.org/) queries from a given schema.
@@ -65,8 +69,8 @@ const configuration = {
       return companyNameList[
         Math.floor(Math.random() * companyNameList.length)
       ]
-    },
-  },
+    }
+  }
 }
 
 const { queryDocument, variableValues, seed } = generateRandomQuery(

@@ -458,62 +458,58 @@ function getArgsAndVars(
 
   // If there is no providerMap, then just create a query with null variables
   if (config.providerMap) {
+    const variableValues: { [varName: string]: any } = {}
+
     const typeFieldName = `${nodeName}__${fieldName}`
 
-    // Check for type__field provider
-    let providedVariableValues = getProviderValue(
-      typeFieldName,
-      config,
-      providedValues
-    ) as { [varName: string]: any }
+    try {
+      // Check for type__field provider
+      const typeFieldProviderValue = getProviderValue(
+        typeFieldName,
+        config,
+        providedValues
+      ) as { [varName: string]: any }
 
-    // Map to full type__field__argument provider name
-    if (providedVariableValues) {
-      const temp = {}
-      Object.entries(providedVariableValues).forEach(([argName, value]) => {
+      // Map to full type__field__argument provider name
+      Object.entries(typeFieldProviderValue).forEach(([argName, value]) => {
         const varName = `${typeFieldName}__${argName}`
 
         // Make sure it is a required argument (provider can provide more that necessary)
         if (Object.keys(variableDefinitionsMap).includes(varName)) {
-          temp[`${typeFieldName}__${argName}`] = value
+          variableValues[`${typeFieldName}__${argName}`] = value
+        }
+      })
+    } finally {
+      // Check for type__field__argument providers (and overwrite if applicable)
+      requiredArguments.forEach((arg) => {
+        const varName = `${typeFieldName}__${arg.name.value}`
+        const argType = schema.getType(getTypeName(arg.type))
+
+        if (isEnumType(argType)) {
+          variableValues[varName] = getRandomEnum(argType)
+        } else {
+          try {
+            const typeFieldArgumentProviderValue = getProviderValue(
+              varName,
+              config,
+              { ...variableValues, ...providedValues },
+              argType
+            )
+
+            variableValues[varName] = typeFieldArgumentProviderValue
+          } catch (e) {
+            // No value identified from either type__field or type__field__argument
+            if (!variableValues[varName]) {
+              throw new Error(
+                `${e} Consider applying wildcard provider with "*__*" or "*__*__*"`
+              )
+            }
+          }
         }
       })
 
-      providedVariableValues = temp
+      return { args, variableDefinitionsMap, variableValues }
     }
-
-    const variableValues: { [varName: string]: any } = providedVariableValues
-      ? providedVariableValues
-      : {}
-
-    // Check for type__field__argument providers (and overwrite if applicable)
-    requiredArguments.forEach((arg) => {
-      const varName = `${typeFieldName}__${arg.name.value}`
-      const argType = schema.getType(getTypeName(arg.type))
-
-      if (isEnumType(argType)) {
-        variableValues[varName] = getRandomEnum(argType)
-      } else {
-        const providedValue = getProviderValue(
-          varName,
-          config,
-          { ...variableValues, ...providedValues },
-          argType
-        ) as any
-
-        if (providedValue) {
-          variableValues[varName] = providedValue
-        } else if (!variableValues[varName]) {
-          throw new Error(
-            `No provider found for "${varName}" in ` +
-              `${Object.keys(config.providerMap).join(', ')}. ` +
-              `Consider applying wildcard provider with "*__*" or "*__*__*"`
-          )
-        }
-      }
-    })
-
-    return { args, variableDefinitionsMap, variableValues }
 
     // This is a special case allowing the user to generate a query without caring for argument values
   } else {
