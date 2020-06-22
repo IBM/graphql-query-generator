@@ -8,10 +8,6 @@
     "build": "tsc",
     "test": "npm run build && jest"
   },
-  "repository": {
-    "type": "git",
-    "url": "git@github.ibm.com:graphql-research/yelp-graphql-data-collection.git"
-  },
   "keywords": [
     "graphql",
     "yelp",
@@ -22,7 +18,7 @@
   "dependencies": {
     "@types/node-fetch": "^2.5.7",
     "graphql": "^14.0.2",
-    "graphql-query-generator": "git+ssh://git@github.ibm.com:graphql-research/graphql-query-generator.git",
+    "ibm-graphql-query-generator": "^1.0.4",
     "node-fetch": "^2.6.0"
   },
   "devDependencies": {
