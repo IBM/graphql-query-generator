@@ -1,10 +1,10 @@
-![GitHub last commit](https://img.shields.io/github/last-commit/ibm/graphql-query-generator.svg?style=flat)
-
-[![npm](https://img.shields.io/npm/v/ibm-graphql-query-generator.svg?style=flat)](https://www.npmjs.com/package/ibm-graphql-query-generator)
+![GitHub last commit](https://img.shields.io/github/last-commit/ibm/graphql-query-generator.svg?style=flat) [![npm](https://img.shields.io/npm/v/ibm-graphql-query-generator.svg?style=flat)](https://www.npmjs.com/package/ibm-graphql-query-generator)
 
 # GraphQL Query Generator
 
 This library will generate randomized [GraphQL](https://graphql.org/) queries from a given schema.
+
+![](./images/diagram.png)
 
 It can be used in a few ways:
 
