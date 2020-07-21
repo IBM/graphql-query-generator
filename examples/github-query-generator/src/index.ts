@@ -5,7 +5,7 @@ import { buildSchema, GraphQLSchema } from 'graphql'
 import { generateRandomQuery, Configuration } from 'ibm-graphql-query-generator'
 import { getProviderMap } from './github-providers'
 
-class GitHubQueryGenerator {
+export class GitHubQueryGenerator {
   gitHubSchema: GraphQLSchema
   gitHubQueryConfig: Configuration
 
@@ -14,12 +14,12 @@ class GitHubQueryGenerator {
     this.gitHubQueryConfig = gitHubQueryConfig
   }
 
-  public generateRandomGitHubQuery() {
+  public generateRandomGitHubQuery () {
     return generateRandomQuery(this.gitHubSchema, this.gitHubQueryConfig)
   }
 }
 
-export function getGitHubQueryGenerator(gitHubAccessToken: string) {
+export function getGitHubQueryGenerator (gitHubAccessToken: string) {
   return new Promise<GitHubQueryGenerator>((resolve, reject) => {
     const gitHubSchemaStr = fs.readFileSync(
       path.resolve(__dirname, '../fixtures/github.graphql'),
@@ -32,7 +32,7 @@ export function getGitHubQueryGenerator(gitHubAccessToken: string) {
         new GitHubQueryGenerator(gitHubSchema, {
           breadthProbability: 0.5,
           depthProbability: 0.5,
-          maxDepth: 10,
+          maxDepth: 2,
           providerMap: gitHubProviders,
           argumentsToConsider: ['first'],
           considerUnions: true,
