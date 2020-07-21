@@ -6,7 +6,8 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && jest"
+    "test": "npm run build && jest",
+    "generate-corpus": "npm run build && node lib/generate-corpus.js"
   },
   "keywords": [
     "graphql",
