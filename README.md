@@ -158,6 +158,7 @@ Generating random queries or mutations may fail in some cases:
 
 ## Citing this library
 
-If you use this library in a scientific publication, please cite it as:
+If you use this library in a scientific publication, please cite:
 
-_IBM, graphql-query-generator, 2020. https://github.com/IBM/graphql-query-generator._
+1. The library, as: _IBM, graphql-query-generator, 2020. https://github.com/IBM/graphql-query-generator_.
+2. The work in which we introduced it, as: _Cha, Wittern, Baudart, Davis, Mandel, and Laredo. A Principled Approach to GraphQL Query Cost Analysis. ESEC/FSE 2020_.
