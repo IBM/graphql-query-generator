@@ -37,6 +37,20 @@ getYelpQueryGenerator(process.env.YELP_ACCESS_TOKEN).then((queryGenerator) => {
 })
 ```
 
+## Generating a query corpus
+
+We provided a script that can generate a corpus of 5,000 randomly generated Yelp queries and responses.
+
+To create the corpus, please provide your Yelp access token in a `.env` file, as described in the previous section.
+
+Then, run:
+
+```base
+npm run generate-corpus
+```
+
+The corpus will be saved into the [query-corpus/](query-corpus/) folder.
+
 ### Disclaimer
 
 Queries are associated with a particular version of a GraphQL schema. Due to the natural evolution of the Yelp API, the generated queries may not work with the current version of the API. The generated queries may contain deprecated fields and the new API may require new arguments for certain fields. However, the generated queries are valid and would have worked with the version of the API at the time.
