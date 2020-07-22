@@ -13,7 +13,7 @@ const ITERATIONS = 5000;
 // Execute the query to get the response
 const withResponse = true;
 
-function iterate (f: (i: number) => Promise<void>, n: number): Promise<void> {
+function iterate(f: (i: number) => Promise<void>, n: number): Promise<void> {
   let p = Promise.resolve();
   for (let i = 0; i < n; i++) {
     p = p.then(_ => { return f(i) })
@@ -21,11 +21,11 @@ function iterate (f: (i: number) => Promise<void>, n: number): Promise<void> {
   return p;
 }
 
-function delay (ms: number) {
+function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function getEntry (token: string, queryGenerator: YelpQueryGenerator, id: number, fd: number) {
+async function getEntry(token: string, queryGenerator: YelpQueryGenerator, id: number, fd: number) {
   try {
     // const { queryDocument, variableValues } = repeatUtilSuccess(queryGenerator.generateRandomYelpQuery);
     // const { queryDocument, variableValues } = genQuery(queryGenerator);

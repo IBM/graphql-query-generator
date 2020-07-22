@@ -13,12 +13,12 @@ export class YelpQueryGenerator {
     this.yelpQueryConfig = yelpQueryConfig
   }
 
-  public generateRandomYelpQuery () {
+  public generateRandomYelpQuery() {
     return generateRandomQuery(this.yelpSchema, this.yelpQueryConfig)
   }
 }
 
-export function getYelpQueryGenerator (yelpAccessToken: string) {
+export function getYelpQueryGenerator(yelpAccessToken: string) {
   return new Promise<YelpQueryGenerator>((resolve, reject) => {
     const yelpSchemaStr = fs
       .readFileSync(path.resolve(__dirname, '../fixtures/yelp.graphql'))

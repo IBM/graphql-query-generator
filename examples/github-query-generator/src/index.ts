@@ -14,12 +14,12 @@ export class GitHubQueryGenerator {
     this.gitHubQueryConfig = gitHubQueryConfig
   }
 
-  public generateRandomGitHubQuery () {
+  public generateRandomGitHubQuery() {
     return generateRandomQuery(this.gitHubSchema, this.gitHubQueryConfig)
   }
 }
 
-export function getGitHubQueryGenerator (gitHubAccessToken: string) {
+export function getGitHubQueryGenerator(gitHubAccessToken: string) {
   return new Promise<GitHubQueryGenerator>((resolve, reject) => {
     const gitHubSchemaStr = fs.readFileSync(
       path.resolve(__dirname, '../fixtures/github.graphql'),

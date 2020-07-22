@@ -6,7 +6,7 @@ import { matchVarName } from 'ibm-graphql-query-generator'
 /**
  * Given a GraphQL query, run it against the GitHub API and extract the data
  */
-export function runGitHubGraphQLQuery (kind: 'graphql' | 'json', query: string, gitHubAccessToken: string) {
+export function runGitHubGraphQLQuery(kind: 'graphql' | 'json', query: string, gitHubAccessToken: string) {
   return new Promise((resolve, reject) => {
     fetch
       .default('https://api.github.com/graphql', {
@@ -346,7 +346,7 @@ export const topics = [
  *
  * See: https://stackoverflow.com/a/49434653/12357477
  */
-function randomBm (): number {
+function randomBm(): number {
   let u = 0,
     v = 0
   while (u === 0) u = Math.random() // Converting [0,1) to (0,1)
@@ -360,17 +360,17 @@ function randomBm (): number {
 /**
  * Returns random integer, normally distributed around 10
  */
-function getRandomInt () {
+function getRandomInt() {
   return Math.floor(10 * randomBm())
 }
 
-function extractMarketplaceCategorySlugs (data: any) {
+function extractMarketplaceCategorySlugs(data: any) {
   return data.marketplaceCategories.map((category: any) => {
     return category.slug
   })
 }
 
-function extractMarketplaceListingSlugs (data: any) {
+function extractMarketplaceListingSlugs(data: any) {
   const result: string[] = []
   data.marketplaceListings.nodes.forEach((node: any) => {
     if (node.app && typeof node.app.slug === 'string') {
@@ -380,39 +380,39 @@ function extractMarketplaceListingSlugs (data: any) {
   return result
 }
 
-function extractLicenseKeys (data: any) {
+function extractLicenseKeys(data: any) {
   return data.licenses.map((license: any) => {
     return license.key
   })
 }
 
-function extractCodeOfConductKeys (data: any) {
+function extractCodeOfConductKeys(data: any) {
   return data.codesOfConduct.map((code: any) => {
     return code.key
   })
 }
 
-function getRandomLabelName () {
+function getRandomLabelName() {
   return labels[Math.floor(Math.random() * labels.length)]
 }
 
-function getRandomTagName () {
+function getRandomTagName() {
   return tagNames[Math.floor(Math.random() * tagNames.length)]
 }
 
-function getRandomRefPrefix () {
+function getRandomRefPrefix() {
   return refs[Math.floor(Math.random() * refs.length)]
 }
 
-function getRandomQualifiedName () {
+function getRandomQualifiedName() {
   return qualifiedNames[Math.floor(Math.random() * qualifiedNames.length)]
 }
 
-function getRandomTopic () {
+function getRandomTopic() {
   return topics[Math.floor(Math.random() * topics.length)]
 }
 
-export function extractGhsaIds (data: any) {
+export function extractGhsaIds(data: any) {
   return data.securityAdvisories.nodes.map((node: any) => {
     return node.ghsaId
   })
@@ -428,7 +428,7 @@ type OrgRepo = {
   repository: string
 }
 
-function extractRepos (data: any) {
+function extractRepos(data: any) {
   const userRepos: UserRepo[] = []
   const orgRepos: OrgRepo[] = []
   const allRepos: (UserRepo | OrgRepo)[] = []
@@ -460,7 +460,7 @@ function extractRepos (data: any) {
   }
 }
 
-export function getProviderMap (gitHubAccessToken: string) {
+export function getProviderMap(gitHubAccessToken: string) {
   return new Promise<ProviderMap>((resolve, reject) => {
     const marketplaceCategorySlugsPromise = new Promise<string[]>(
       (resolve, reject) => {
@@ -573,33 +573,33 @@ export function getProviderMap (gitHubAccessToken: string) {
 
       const { userRepos, orgRepos, allRepos } = repos
 
-      function getRandomMarketplaceCategorySlug () {
+      function getRandomMarketplaceCategorySlug() {
         return marketplaceCategorySlugs[
           Math.floor(Math.random() * marketplaceCategorySlugs.length)
         ]
       }
 
-      function getRandomMarketplaceListingSlug () {
+      function getRandomMarketplaceListingSlug() {
         return marketplaceListingSlugs[
           Math.floor(Math.random() * marketplaceListingSlugs.length)
         ]
       }
 
-      function getRandomLicenseKey () {
+      function getRandomLicenseKey() {
         return licenseKeys[Math.floor(Math.random() * licenseKeys.length)]
       }
 
-      function getRandomCodeOfConductKey () {
+      function getRandomCodeOfConductKey() {
         return codeOfConductKeys[
           Math.floor(Math.random() * codeOfConductKeys.length)
         ]
       }
 
-      function getRandomGhsaId () {
+      function getRandomGhsaId() {
         return ghsaIds[Math.floor(Math.random() * ghsaIds.length)]
       }
 
-      function getRandomUserLogin (existingVars: any) {
+      function getRandomUserLogin(existingVars: any) {
         // If there is already repository in the variables, return matching user:
         const repoVarKey = matchVarName(
           '*__repository__name',
@@ -617,7 +617,7 @@ export function getProviderMap (gitHubAccessToken: string) {
         return userRepos[Math.floor(Math.random() * userRepos.length)].userlogin
       }
 
-      function getRandomOrganizationLogin (existingVars: any) {
+      function getRandomOrganizationLogin(existingVars: any) {
         // if there is already repository in the variables, return matching user:
         const repoVarKey = matchVarName(
           '*__repository__name',
@@ -636,7 +636,7 @@ export function getProviderMap (gitHubAccessToken: string) {
           .organization
       }
 
-      function getRandomOwner (existingVars: any) {
+      function getRandomOwner(existingVars: any) {
         // If there is already a repository, return matching owner:
         const repoKey = matchVarName(
           '*__repository__name',
@@ -663,7 +663,7 @@ export function getProviderMap (gitHubAccessToken: string) {
         }
       }
 
-      function getRandomRepositoryName (existingVars: any) {
+      function getRandomRepositoryName(existingVars: any) {
         // If there is already a user login in the variables, return matching repository:
         const userLoginKey = matchVarName(
           '*__user__login',
