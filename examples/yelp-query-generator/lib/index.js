@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getYelpQueryGenerator = void 0;
+exports.getYelpQueryGenerator = exports.YelpQueryGenerator = void 0;
 const fs = require("fs");
 const path = require("path");
 const graphql_1 = require("graphql");
@@ -15,13 +15,14 @@ class YelpQueryGenerator {
         return ibm_graphql_query_generator_1.generateRandomQuery(this.yelpSchema, this.yelpQueryConfig);
     }
 }
+exports.YelpQueryGenerator = YelpQueryGenerator;
 function getYelpQueryGenerator(yelpAccessToken) {
     return new Promise((resolve, reject) => {
         const yelpSchemaStr = fs
             .readFileSync(path.resolve(__dirname, '../fixtures/yelp.graphql'))
             .toString();
         const yelpSchema = graphql_1.buildSchema(yelpSchemaStr);
-        yelp_providers_1.getProviderMap(yelpAccessToken).then(yelpProviders => {
+        yelp_providers_1.getProviderMap(yelpAccessToken).then((yelpProviders) => {
             resolve(new YelpQueryGenerator(yelpSchema, {
                 breadthProbability: 0.5,
                 depthProbability: 0.5,

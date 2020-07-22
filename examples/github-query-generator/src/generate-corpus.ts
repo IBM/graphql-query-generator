@@ -9,7 +9,8 @@ import { runGitHubGraphQLQuery } from './github-providers';
 
 
 // The number of randomly generated queries that should be created
-const ITERATIONS = 3;
+const ITERATIONS = 5000;
+// Execute the query to get the response
 const withResponse = true;
 
 function iterate (f: (i: number) => Promise<void>, n: number): Promise<void> {
@@ -24,37 +25,17 @@ function delay (ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// function repeatUtilSuccess<T> (f: () => T): T {
-//   try {
-//     return f();
-//   } catch (error) {
-//     return repeatUtilSuccess(f);
-//   }
-// }
-
-// function genQuery (queryGenerator: GitHubQueryGenerator): {
-//   queryDocument: DocumentNode;
-//   variableValues: { [varName: string]: any; }
-// } {
-//   try {
-//     return queryGenerator.generateRandomGitHubQuery();
-//   } catch (error) {
-//     console.log(error);
-//     return genQuery(queryGenerator);
-//   }
-// }
-
 async function getEntry (token: string, queryGenerator: GitHubQueryGenerator, id: number, fd: number) {
   try {
-    // const { queryDocument, variableValues } = repeatUtilSuccess(queryGenerator.generateRandomGitHubQuery);
-    // const { queryDocument, variableValues } = genQuery(queryGenerator);
     const { queryDocument, variableValues } = queryGenerator.generateRandomGitHubQuery();
     const query = print(queryDocument);
     const request = { query, variables: variableValues }
     await delay(1000);
     const response = withResponse ? await runGitHubGraphQLQuery('json', JSON.stringify(request), token) : null
+    const timestamp = Date.now()
     const entry = {
       id,
+      timestamp,
       query,
       variableValues,
       response

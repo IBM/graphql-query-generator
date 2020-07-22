@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getProviderMap = exports.extractBusinesses = exports.locations = exports.eventsQuery = exports.getBusinessesQuery = exports.runYelpGraphQLQuery = void 0;
 const fetch = require("node-fetch");
-function runYelpGraphQLQuery(query, yelpAccessToken) {
+function runYelpGraphQLQuery(kind, query, yelpAccessToken) {
     return new Promise((resolve, reject) => {
         fetch
             .default('https://api.yelp.com/v3/graphql', {
@@ -10,10 +10,10 @@ function runYelpGraphQLQuery(query, yelpAccessToken) {
             body: query,
             headers: {
                 Authorization: `Bearer ${yelpAccessToken}`,
-                'Content-Type': 'application/graphql'
+                'Content-Type': 'application/' + kind
             }
         })
-            .then(res => {
+            .then((res) => {
             if (res.status === 200) {
                 return res.json();
             }
@@ -21,12 +21,14 @@ function runYelpGraphQLQuery(query, yelpAccessToken) {
                 throw new Error('Unauthorized Yelp API call. Did you provide a valid Yelp access token?');
             }
             else {
-                throw new Error('Unsuccessful Yelp API call.');
+                console.error(`Failed query: ${query}`);
+                throw new Error(`Unsuccessful Yelp API call: ${res.statusText}`);
             }
         })
-            .then(json => {
+            .then((json) => {
             resolve(json.data);
-        });
+        })
+            .catch(reject);
     });
 }
 exports.runYelpGraphQLQuery = runYelpGraphQLQuery;
@@ -115,26 +117,26 @@ function getProviderMap(yelpAccessToken) {
                 return new Promise((resolve, reject) => {
                     // Delay the requests, otherwise will receive status: 429 Too Many Requests
                     setTimeout(() => {
-                        runYelpGraphQLQuery(getBusinessesQuery(location), yelpAccessToken)
-                            .then(data => resolve(extractBusinesses(data)))
-                            .catch(error => reject(`Could not fetch businesses. ${error}`));
+                        runYelpGraphQLQuery('graphql', getBusinessesQuery(location), yelpAccessToken)
+                            .then((data) => resolve(extractBusinesses(data)))
+                            .catch((error) => reject(`Could not fetch businesses. ${error}`));
                     }, i * 500);
                 });
-            })).then(values => {
+            })).then((values) => {
                 // Concatenate all the businesses across all locations
                 resolve([].concat(...values));
             });
         });
         const eventsPromise = new Promise((resolve, reject) => {
-            runYelpGraphQLQuery(exports.eventsQuery, yelpAccessToken)
-                .then(data => {
+            runYelpGraphQLQuery('graphql', exports.eventsQuery, yelpAccessToken)
+                .then((data) => {
                 resolve(extractEvents(data));
             })
-                .catch(error => {
+                .catch((error) => {
                 reject(`Could not fetch events. ${error}`);
             });
         });
-        Promise.all([businessesPromise, eventsPromise]).then(values => {
+        Promise.all([businessesPromise, eventsPromise]).then((values) => {
             const [businesses, events] = values;
             function getRandomBusinessMatch() {
                 const index = Math.floor(Math.random() * businesses.length);

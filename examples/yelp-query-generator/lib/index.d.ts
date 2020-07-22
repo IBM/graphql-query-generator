@@ -1,6 +1,6 @@
 import { GraphQLSchema } from 'graphql';
 import { Configuration } from 'ibm-graphql-query-generator';
-declare class YelpQueryGenerator {
+export declare class YelpQueryGenerator {
     yelpSchema: GraphQLSchema;
     yelpQueryConfig: Configuration;
     constructor(yelpSchema: GraphQLSchema, yelpQueryConfig: Configuration);
@@ -15,4 +15,3 @@ declare class YelpQueryGenerator {
     };
 }
 export declare function getYelpQueryGenerator(yelpAccessToken: string): Promise<YelpQueryGenerator>;
-export {};

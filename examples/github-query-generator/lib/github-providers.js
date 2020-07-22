@@ -6,17 +6,17 @@ const ibm_graphql_query_generator_1 = require("ibm-graphql-query-generator");
 /**
  * Given a GraphQL query, run it against the GitHub API and extract the data
  */
-function runGitHubGraphQLQuery(query, gitHubAccessToken) {
+function runGitHubGraphQLQuery(kind, query, gitHubAccessToken) {
     return new Promise((resolve, reject) => {
         fetch
             .default('https://api.github.com/graphql', {
             method: 'POST',
-            body: JSON.stringify({ query }),
+            body: query,
             headers: {
-                Authorization: `token ${gitHubAccessToken}`
+                Authorization: `Bearer ${gitHubAccessToken}`
             }
         })
-            .then(res => {
+            .then((res) => {
             if (res.status === 200) {
                 return res.json();
             }
@@ -29,13 +29,15 @@ function runGitHubGraphQLQuery(query, gitHubAccessToken) {
         })
             .then((json) => {
             if ('errors' in json) {
-                const insufficientScopesError = json.errors.find(error => error.type === 'INSUFFICIENT_SCOPES');
+                const insufficientScopesError = json.errors.find((error) => error.type === 'INSUFFICIENT_SCOPES');
                 if (insufficientScopesError) {
                     throw new Error(`GitHub access token has insufficient scopes. + ${insufficientScopesError.message}`);
                 }
+                console.error(`Errors in response: ${JSON.stringify(json.errors)}`);
             }
             resolve(json.data);
-        });
+        })
+            .catch(reject);
     });
 }
 exports.runGitHubGraphQLQuery = runGitHubGraphQLQuery;
@@ -423,44 +425,48 @@ function extractRepos(data) {
 function getProviderMap(gitHubAccessToken) {
     return new Promise((resolve, reject) => {
         const marketplaceCategorySlugsPromise = new Promise((resolve, reject) => {
-            runGitHubGraphQLQuery(marketplaceCategorySlugsQuery, gitHubAccessToken).then(data => {
+            runGitHubGraphQLQuery('graphql', JSON.stringify({ query: marketplaceCategorySlugsQuery }), gitHubAccessToken).then((data) => {
                 resolve(extractMarketplaceCategorySlugs(data));
-            }, error => {
+            }, (error) => {
                 reject(`Could not fetch marketplace categories slugs. ${error}`);
             });
         });
         const marketplaceListingSlugsPromise = new Promise((resolve, reject) => {
-            runGitHubGraphQLQuery(marketplaceListingSlugsQuery, gitHubAccessToken).then(data => {
+            runGitHubGraphQLQuery('graphql', JSON.stringify({ query: marketplaceListingSlugsQuery }), gitHubAccessToken).then((data) => {
                 resolve(extractMarketplaceListingSlugs(data));
-            }, error => {
+            }, (error) => {
                 reject(`Could not fetch marketplace listings slugs. ${error}`);
             });
         });
         const licenseKeysPromise = new Promise((resolve, reject) => {
-            runGitHubGraphQLQuery(licenseKeysQuery, gitHubAccessToken).then(data => {
+            runGitHubGraphQLQuery('graphql', JSON.stringify({ query: licenseKeysQuery }), gitHubAccessToken)
+                .then((data) => {
                 resolve(extractLicenseKeys(data));
-            }, error => {
+            }, (error) => {
                 reject(`Could not fetch license keys. ${error}`);
             });
         });
         const codeOfConductKeysPromise = new Promise((resolve, reject) => {
-            runGitHubGraphQLQuery(codeOfConductKeysQuery, gitHubAccessToken).then(data => {
+            runGitHubGraphQLQuery('graphql', JSON.stringify({ query: codeOfConductKeysQuery }), gitHubAccessToken)
+                .then((data) => {
                 resolve(extractCodeOfConductKeys(data));
-            }, error => {
+            }, (error) => {
                 reject(`Could not fetch code of conduct keys. ${error}`);
             });
         });
         const ghsaIdsPromise = new Promise((resolve, reject) => {
-            runGitHubGraphQLQuery(ghsaIdsQuery, gitHubAccessToken).then(data => {
+            runGitHubGraphQLQuery('graphql', JSON.stringify({ query: ghsaIdsQuery }), gitHubAccessToken)
+                .then((data) => {
                 resolve(extractGhsaIds(data));
-            }, error => {
+            }, (error) => {
                 reject(`Could not fetch GHSA IDs. ${error}`);
             });
         });
         const reposPromise = new Promise((resolve, reject) => {
-            runGitHubGraphQLQuery(reposQuery, gitHubAccessToken).then(data => {
+            runGitHubGraphQLQuery('graphql', JSON.stringify({ query: reposQuery }), gitHubAccessToken)
+                .then((data) => {
                 resolve(extractRepos(data));
-            }, error => {
+            }, (error) => {
                 reject(`Could not fetch repos. ${error}`);
             });
         });
@@ -471,7 +477,7 @@ function getProviderMap(gitHubAccessToken) {
             codeOfConductKeysPromise,
             ghsaIdsPromise,
             reposPromise
-        ]).then(values => {
+        ]).then((values) => {
             const [marketplaceCategorySlugs, marketplaceListingSlugs, licenseKeys, codeOfConductKeys, ghsaIds, repos] = values;
             const { userRepos, orgRepos, allRepos } = repos;
             function getRandomMarketplaceCategorySlug() {
@@ -494,7 +500,7 @@ function getProviderMap(gitHubAccessToken) {
                 const repoVarKey = ibm_graphql_query_generator_1.matchVarName('*__repository__name', Object.keys(existingVars));
                 if (repoVarKey) {
                     const repository = existingVars[repoVarKey];
-                    const userPair = userRepos.find(repo => repo.repository === repository);
+                    const userPair = userRepos.find((repo) => repo.repository === repository);
                     if (typeof userPair === 'object') {
                         return userPair.userlogin;
                     }
@@ -506,7 +512,7 @@ function getProviderMap(gitHubAccessToken) {
                 const repoVarKey = ibm_graphql_query_generator_1.matchVarName('*__repository__name', Object.keys(existingVars));
                 if (repoVarKey) {
                     const repository = existingVars[repoVarKey];
-                    const orgPair = orgRepos.find(repo => repo.repository === repository);
+                    const orgPair = orgRepos.find((repo) => repo.repository === repository);
                     if (typeof orgPair === 'object') {
                         return orgPair.organization;
                     }
@@ -519,7 +525,7 @@ function getProviderMap(gitHubAccessToken) {
                 const repoKey = ibm_graphql_query_generator_1.matchVarName('*__repository__name', Object.keys(existingVars));
                 if (repoKey) {
                     const existingRepo = existingVars[repoKey];
-                    const pair = allRepos.find(repo => repo.repository === existingRepo);
+                    const pair = allRepos.find((repo) => repo.repository === existingRepo);
                     if (pair) {
                         if ('organization' in pair) {
                             return pair.organization;
@@ -542,21 +548,21 @@ function getProviderMap(gitHubAccessToken) {
                 const userLoginKey = ibm_graphql_query_generator_1.matchVarName('*__user__login', Object.keys(existingVars));
                 if (userLoginKey) {
                     const userLogin = existingVars[userLoginKey];
-                    const userRepo = userRepos.find(repo => repo.userlogin === userLogin);
+                    const userRepo = userRepos.find((repo) => repo.userlogin === userLogin);
                     return userRepo ? userRepo.repository : undefined;
                 }
                 // If there is already an organization in the variables, return matching repository:
                 const organizationKey = ibm_graphql_query_generator_1.matchVarName('*__organization__login', Object.keys(existingVars));
                 if (organizationKey) {
                     const organization = existingVars[organizationKey];
-                    const orgRepo = orgRepos.find(repo => repo.organization === organization);
+                    const orgRepo = orgRepos.find((repo) => repo.organization === organization);
                     return orgRepo ? orgRepo.repository : undefined;
                 }
                 // If there is already an owner in the variables, return matching repository:
                 const ownerKey = ibm_graphql_query_generator_1.matchVarName('*__repository__owner', Object.keys(existingVars));
                 if (ownerKey) {
                     const owner = existingVars[ownerKey];
-                    const repo = allRepos.find(repo => repo.userlogin === owner ||
+                    const repo = allRepos.find((repo) => repo.userlogin === owner ||
                         repo.organization === owner);
                     return repo ? repo.repository : undefined;
                 }
