@@ -39,8 +39,22 @@ getGitHubQueryGenerator(process.env.GITHUB_ACCESS_TOKEN).then(
 )
 ```
 
+## Generating a query corpus
+
+We provided a script that can generate a corpus of 5,000 randomly generated GitHub queries and responses.
+
+To create the corpus, please provide your GitHub access token in a `.env` file, as described in the previous section.
+
+Then, run:
+
+```base
+npm run generate-corpus
+```
+
+The corpus will be saved into the [query-corpus/](query-corpus/) folder.
+
 ### Disclaimer
 
-Queries are associated with a particular version of a GraphQL schema. The generated GitHub queries are associated with this [version](https://github.com/octokit/graphql-schema/blob/2a4687027d43125f92121aaa1a7d9f062d10a29e/schema.graphql) of the GitHub schema.
+Queries are associated with a particular version of a GraphQL schema. The generated GitHub queries are associated with this [version](https://github.com/octokit/graphql-schema/blob/1831fcbb21476aabe94af46aee84f063df50a377/schema.graphql) of the GitHub schema.
 
 Due to the natural evolution of the GitHub API, the generated queries may not work with the current version of the API. The generated queries may contain deprecated fields and the new API may require new arguments for certain fields. However, the generated queries are valid and would have worked with the version of the API at the time.
