@@ -1,6 +1,6 @@
 import { GraphQLSchema } from 'graphql';
 import { Configuration } from 'ibm-graphql-query-generator';
-declare class GitHubQueryGenerator {
+export declare class GitHubQueryGenerator {
     gitHubSchema: GraphQLSchema;
     gitHubQueryConfig: Configuration;
     constructor(gitHubSchema: GraphQLSchema, gitHubQueryConfig: Configuration);
@@ -15,4 +15,3 @@ declare class GitHubQueryGenerator {
     };
 }
 export declare function getGitHubQueryGenerator(gitHubAccessToken: string): Promise<GitHubQueryGenerator>;
-export {};

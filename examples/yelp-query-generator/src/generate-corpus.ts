@@ -10,11 +10,12 @@ import { runYelpGraphQLQuery } from './yelp-providers';
 
 // The number of randomly generated queries that should be created
 const ITERATIONS = 5000;
+// Execute the query to get the response
 const withResponse = true;
 
 function iterate (f: (i: number) => Promise<void>, n: number): Promise<void> {
   let p = Promise.resolve();
-  for (let i = 590; i < n; i++) {
+  for (let i = 0; i < n; i++) {
     p = p.then(_ => { return f(i) })
   }
   return p;
@@ -23,26 +24,6 @@ function iterate (f: (i: number) => Promise<void>, n: number): Promise<void> {
 function delay (ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-// function repeatUtilSuccess<T> (f: () => T): T {
-//   try {
-//     return f();
-//   } catch (error) {
-//     return repeatUtilSuccess(f);
-//   }
-// }
-
-// function genQuery (queryGenerator: YelpQueryGenerator): {
-//   queryDocument: DocumentNode;
-//   variableValues: { [varName: string]: any; }
-// } {
-//   try {
-//     return queryGenerator.generateRandomYelpQuery();
-//   } catch (error) {
-//     console.log(error);
-//     return genQuery(queryGenerator);
-//   }
-// }
 
 async function getEntry (token: string, queryGenerator: YelpQueryGenerator, id: number, fd: number) {
   try {
@@ -53,8 +34,10 @@ async function getEntry (token: string, queryGenerator: YelpQueryGenerator, id: 
     const request = { query, variables: variableValues }
     await delay(1000);
     const response = withResponse ? await runYelpGraphQLQuery('json', JSON.stringify(request), token) : null
+    const timestamp = Date.now()
     const entry = {
       id,
+      timestamp,
       query,
       variableValues,
       response

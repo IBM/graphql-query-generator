@@ -711,10 +711,6 @@ export function getProviderMap (gitHubAccessToken: string) {
         return allRepos[Math.floor(Math.random() * allRepos.length)].repository
       }
 
-      function getRandomToken () {
-        return ""
-      }
-
       resolve({
         /**
          * Given we don't know anything about the repo, we return 'README.md',
