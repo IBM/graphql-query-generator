@@ -77,6 +77,26 @@ function getDocumentDefinition(definitions): DocumentNode {
   }
 }
 
+function getTypeNameMetaFieldDef(): FieldDefinitionNode {
+  return {
+    name: {
+      kind: 'Name',
+      value: '__typename'
+    },
+    kind: 'FieldDefinition',
+    type: {
+      kind: 'NonNullType',
+      type: {
+        kind: 'NamedType',
+        name: {
+          kind: 'Name',
+          value: 'String'
+        }
+      }
+    }
+  }
+}
+
 function getQueryOperationDefinition(
   schema: GraphQLSchema,
   config: InternalConfiguration
@@ -386,11 +406,8 @@ function getRandomFields(
       const forcedFlatIndex = Math.floor(random(config) * flat.length)
       results.push(flat[forcedFlatIndex])
     } else {
-      throw new Error(
-        `Cannot pick field from: ${fields
-          .map((fd) => fd.name.value)
-          .join(', ')}`
-      )
+      // default to selecting __typename meta field:
+      results.push(getTypeNameMetaFieldDef())
     }
   }
 
