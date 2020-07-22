@@ -1,7 +1,7 @@
 import * as fetch from 'node-fetch'
 import { ProviderMap } from 'ibm-graphql-query-generator/lib/provide-variables'
 
-export function runYelpGraphQLQuery (kind: 'graphql' | 'json', query: string, yelpAccessToken: string) {
+export function runYelpGraphQLQuery(kind: 'graphql' | 'json', query: string, yelpAccessToken: string) {
   return new Promise((resolve, reject) => {
     fetch
       .default('https://api.yelp.com/v3/graphql', {
@@ -31,7 +31,7 @@ export function runYelpGraphQLQuery (kind: 'graphql' | 'json', query: string, ye
   })
 }
 
-export function getBusinessesQuery (location: string) {
+export function getBusinessesQuery(location: string) {
   return `{
     search(limit: 50, location: "${location}") {
       business {
@@ -88,11 +88,11 @@ type Event = {
   id: string
 }
 
-export function extractBusinesses (data: any): Business[] {
+export function extractBusinesses(data: any): Business[] {
   return data.search.business
 }
 
-function extractEvents (data: any): Event[] {
+function extractEvents(data: any): Event[] {
   return data.event_search.events
 }
 
@@ -101,7 +101,7 @@ function extractEvents (data: any): Event[] {
  *
  * See: https://stackoverflow.com/a/36481059/1023827
  */
-function randomBm (): number {
+function randomBm(): number {
   let u = 0,
     v = 0
   while (u === 0) u = Math.random() // Converting [0,1) to (0,1)
@@ -115,21 +115,21 @@ function randomBm (): number {
 /**
  * Returns random integer, normally distributed around the passed expected value
  */
-function getRandomInt () {
+function getRandomInt() {
   return Math.floor(randomBm() * 15)
 }
 
-function getRandomSearchTerm () {
+function getRandomSearchTerm() {
   const index = Math.floor(Math.random() * searchTerms.length)
   return searchTerms[index]
 }
 
-function getRandomLocation () {
+function getRandomLocation() {
   const index = Math.floor(Math.random() * locations.length)
   return locations[index]
 }
 
-export function getProviderMap (yelpAccessToken: string) {
+export function getProviderMap(yelpAccessToken: string) {
   return new Promise<ProviderMap>((resolve, reject) => {
     const businessesPromise = new Promise<Business[]>((resolve, reject) => {
       Promise.all(
@@ -165,7 +165,7 @@ export function getProviderMap (yelpAccessToken: string) {
     Promise.all([businessesPromise, eventsPromise]).then((values) => {
       const [businesses, events] = values as [Business[], Event[]]
 
-      function getRandomBusinessMatch () {
+      function getRandomBusinessMatch() {
         const index = Math.floor(Math.random() * businesses.length)
         const business = businesses[index]
         return {
@@ -177,17 +177,17 @@ export function getProviderMap (yelpAccessToken: string) {
         }
       }
 
-      function getRandomBusinessId () {
+      function getRandomBusinessId() {
         const index = Math.floor(Math.random() * businesses.length)
         return businesses[index].id
       }
 
-      function getRandomEventId () {
+      function getRandomEventId() {
         const index = Math.floor(Math.random() * events.length)
         return events[index].id
       }
 
-      function getRandomPhoneNumber () {
+      function getRandomPhoneNumber() {
         const index = Math.floor(Math.random() * businesses.length)
         return businesses[index].phone
       }
