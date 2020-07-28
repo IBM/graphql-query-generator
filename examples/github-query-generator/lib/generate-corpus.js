@@ -45,8 +45,8 @@ function getEntry(token, queryGenerator, id, fd) {
                 variableValues,
                 response
             };
-            console.log(`Generated query ${id} out of ${ITERATIONS}`);
-            fs.write(fd, `${JSON.stringify(entry, null, 2)},\n`, (err) => {
+            console.log(`Generated query ${id} out of ${ITERATIONS - 1}`);
+            fs.write(fd, `${JSON.stringify(entry, null, 2)}${(id < ITERATIONS - 1) ? ',' : ''}\n`, (err) => {
                 if (err)
                     console.log('Error writing file:', err);
             });
@@ -61,7 +61,15 @@ if (process.env.GITHUB_ACCESS_TOKEN) {
     index_1.getGitHubQueryGenerator(process.env.GITHUB_ACCESS_TOKEN).then((queryGenerator) => {
         const token = process.env.GITHUB_ACCESS_TOKEN || '';
         const fd = fs.openSync('./query-corpus/github-query.json', 'w');
+        fs.write(fd, `[\n`, (err) => {
+            if (err)
+                console.log('Error writing file:', err);
+        });
         iterate(i => getEntry(token, queryGenerator, i, fd), ITERATIONS).then(() => {
+            fs.write(fd, `]\n`, (err) => {
+                if (err)
+                    console.log('Error writing file:', err);
+            });
             fs.close(fd, (err) => {
                 if (err)
                     console.log('Error closing file:', err);
