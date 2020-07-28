@@ -24,7 +24,7 @@ function getGitHubQueryGenerator(gitHubAccessToken) {
             resolve(new GitHubQueryGenerator(gitHubSchema, {
                 breadthProbability: 0.5,
                 depthProbability: 0.5,
-                maxDepth: 2,
+                maxDepth: 10,
                 providerMap: gitHubProviders,
                 argumentsToConsider: ['first'],
                 considerUnions: true,
