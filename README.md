@@ -13,14 +13,21 @@ It can be used in a few ways:
   - develop a battery of queries to test the effect of performance improvements
 - _Scientific_: Understand the characteristics of various GraphQL services
 
-## Example configurations
+## Usage
 
-We provide sample query generators for the following APIs:
+Install the library using:
 
-- [GitHub API](https://github.com/IBM/graphql-query-generator/tree/master/examples/github-query-generator)
-- [Yelp API](https://github.com/IBM/graphql-query-generator/tree/master/examples/yelp-query-generator)
+```
+npm i ibm-graphql-query-generator
+```
 
-## Minimal working example
+Usage typically relies on the `generateRandomQuery` function, which can be imported like this:
+
+```javascript
+const { generateRandomQuery } = require("ibm-graphql-query-generator")
+```
+
+### Minimal working example
 
 All [arguments](https://facebook.github.io/graphql/draft/#sec-Language.Arguments) are exposed as [variables](https://facebook.github.io/graphql/draft/#sec-Language.Variables). _Providers_ can be passed to provide values for these variables. For example:
 
@@ -81,6 +88,13 @@ const { queryDocument, variableValues, seed } = generateRandomQuery(
 console.log(print(queryDocument))
 console.log(variableValues)
 ```
+
+## Example configurations
+
+We provide sample query generators for the following APIs:
+
+- [GitHub API](https://github.com/IBM/graphql-query-generator/tree/master/examples/github-query-generator)
+- [Yelp API](https://github.com/IBM/graphql-query-generator/tree/master/examples/yelp-query-generator)
 
 ## Generating random queries
 
