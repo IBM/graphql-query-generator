@@ -40,7 +40,7 @@ async function getEntry(
     const query = print(queryDocument)
     const request = { query, variables: variableValues }
     await delay(1000)
-    const response = withResponse
+    const data = withResponse
       ? await runGitHubGraphQLQuery('json', JSON.stringify(request), token)
       : null
     const timestamp = Date.now()
@@ -49,7 +49,7 @@ async function getEntry(
       timestamp,
       query,
       variableValues,
-      response
+      response: { data }
     }
     console.log(`Generated query ${id} out of ${ITERATIONS - 1}`)
     fs.write(

@@ -22,12 +22,14 @@ const withResponse = true;
 function iterate(f, n) {
     let p = Promise.resolve();
     for (let i = 0; i < n; i++) {
-        p = p.then(_ => { return f(i); });
+        p = p.then((_) => {
+            return f(i);
+        });
     }
     return p;
 }
 function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 function getEntry(token, queryGenerator, id, fd) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -36,17 +38,19 @@ function getEntry(token, queryGenerator, id, fd) {
             const query = graphql_1.print(queryDocument);
             const request = { query, variables: variableValues };
             yield delay(1000);
-            const response = withResponse ? yield github_providers_1.runGitHubGraphQLQuery('json', JSON.stringify(request), token) : null;
+            const data = withResponse
+                ? yield github_providers_1.runGitHubGraphQLQuery('json', JSON.stringify(request), token)
+                : null;
             const timestamp = Date.now();
             const entry = {
                 id,
                 timestamp,
                 query,
                 variableValues,
-                response
+                response: { data }
             };
             console.log(`Generated query ${id} out of ${ITERATIONS - 1}`);
-            fs.write(fd, `${JSON.stringify(entry, null, 2)}${(id < ITERATIONS - 1) ? ',' : ''}\n`, (err) => {
+            fs.write(fd, `${JSON.stringify(entry, null, 2)}${id < ITERATIONS - 1 ? ',' : ''}\n`, (err) => {
                 if (err)
                     console.log('Error writing file:', err);
             });
@@ -65,7 +69,8 @@ if (process.env.GITHUB_ACCESS_TOKEN) {
             if (err)
                 console.log('Error writing file:', err);
         });
-        iterate(i => getEntry(token, queryGenerator, i, fd), ITERATIONS).then(() => {
+        iterate((i) => getEntry(token, queryGenerator, i, fd), ITERATIONS)
+            .then(() => {
             fs.write(fd, `]\n`, (err) => {
                 if (err)
                     console.log('Error writing file:', err);

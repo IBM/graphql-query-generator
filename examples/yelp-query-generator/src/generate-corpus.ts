@@ -33,8 +33,6 @@ async function getEntry(
   fd: number
 ) {
   try {
-    // const { queryDocument, variableValues } = repeatUtilSuccess(queryGenerator.generateRandomYelpQuery);
-    // const { queryDocument, variableValues } = genQuery(queryGenerator);
     const {
       queryDocument,
       variableValues
@@ -42,7 +40,7 @@ async function getEntry(
     const query = print(queryDocument)
     const request = { query, variables: variableValues }
     await delay(1000)
-    const response = withResponse
+    const data = withResponse
       ? await runYelpGraphQLQuery('json', JSON.stringify(request), token)
       : null
     const timestamp = Date.now()
@@ -51,7 +49,7 @@ async function getEntry(
       timestamp,
       query,
       variableValues,
-      response
+      response: { data }
     }
     console.log(`Generated query ${id} out of ${ITERATIONS - 1}`)
     fs.write(
