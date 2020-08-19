@@ -4,4 +4,9 @@ export {
   Configuration
 } from './generate-query'
 
-export { matchVarName } from './provide-variables'
+export {
+  ProviderFunction,
+  ProviderMap,
+  matchVarName,
+  getProviderValue
+} from './provide-variables'
