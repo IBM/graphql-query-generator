@@ -8,5 +8,6 @@ export {
   ProviderFunction,
   ProviderMap,
   matchVarName,
+  getProvider,
   getProviderValue
 } from './provide-variables'
