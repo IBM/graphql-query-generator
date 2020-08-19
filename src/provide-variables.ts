@@ -48,7 +48,7 @@ export function matchVarName(query: string, candidates: string[]): string {
   return null
 }
 
-function getProvider(varName: string, providerMap: ProviderMap) {
+export function getProvider(varName: string, providerMap: ProviderMap) {
   const providerKey = matchVarName(varName, Object.keys(providerMap))
 
   if (providerKey) {
