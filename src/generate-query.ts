@@ -15,7 +15,8 @@ import {
   Kind,
   InlineFragmentNode,
   GraphQLObjectType,
-  print
+  print,
+  StringValueNode
 } from 'graphql'
 
 import * as seedrandom from 'seedrandom'
@@ -454,10 +455,64 @@ function getNextNodefactor(variableValues: { [name: string]: any }): number {
   return 1
 }
 
+/**
+ * Returns the first slicing argument defined in the field's @listSize diretive,
+ * if:
+ *  - The @listSize diretive is indeed present, and defines slicing arguments
+ *  - The requiredArguements do not already include any of the defined slicing
+ *    arguments
+ *  - The @listSize diretive doesn't also set requireOneSlicingArgument to false
+ */
+function getMissingSlicingArg(
+  requiredArguments: InputValueDefinitionNode[],
+  field: FieldDefinitionNode
+): InputValueDefinitionNode {
+  // Return null if there is no @listSize directive:
+  const listSizeDirective = field.directives.find(
+    (dir) => dir.name.value === 'listSize'
+  )
+  if (typeof listSizeDirective === 'undefined') return null
+
+  // Return null if @listSize directive defines no slicing arguments:
+  const slicingArgumentsArg = listSizeDirective.arguments.find(
+    (arg) => arg.name.value === 'slicingArguments'
+  )
+  if (typeof slicingArgumentsArg === 'undefined') return null
+
+  // Return null if requireOneSlicingArgument is set to false:
+  const requireOneSlicingArg = listSizeDirective.arguments.find(
+    (arg) => arg.name.value === 'requireOneSlicingArgument'
+  )
+  if (
+    typeof requireOneSlicingArg !== 'undefined' &&
+    requireOneSlicingArg.value.kind === 'BooleanValue' &&
+    requireOneSlicingArg.value.value === false
+  )
+    return null
+
+  // Return null if slicing arguments are not a list:
+  if (slicingArgumentsArg.value.kind !== 'ListValue') return null
+
+  // Return null if a slicing argument is already used:
+  const slicingArguments = slicingArgumentsArg.value.values
+    .filter((value) => value.kind === 'StringValue')
+    .map((value) => (value as StringValueNode).value)
+  const usesSlicingArg = slicingArguments.some((slicingArg) =>
+    requiredArguments
+      .map((existing) => existing.name.value)
+      .includes(slicingArg)
+  )
+  if (usesSlicingArg) return null
+
+  // Return the first slicing arguments:
+  return field.arguments.find((arg) =>
+    slicingArguments.includes(arg.name.value)
+  )
+}
+
 function getArgsAndVars(
-  allArgs: ReadonlyArray<InputValueDefinitionNode>,
+  field: FieldDefinitionNode,
   nodeName: string,
-  fieldName: string,
   config: InternalConfiguration,
   schema: GraphQLSchema,
   providedValues: { [varName: string]: any }
@@ -466,6 +521,8 @@ function getArgsAndVars(
   variableDefinitionsMap: { [varName: string]: VariableDefinitionNode }
   variableValues: { [varName: string]: any }
 } {
+  const fieldName = field.name.value
+  const allArgs = field.arguments
   const args: ArgumentNode[] = []
 
   const variableDefinitionsMap: {
@@ -474,6 +531,8 @@ function getArgsAndVars(
   const requiredArguments = allArgs.filter((arg) =>
     considerArgument(arg, config)
   )
+  const missingSlicingArg = getMissingSlicingArg(requiredArguments, field)
+  if (missingSlicingArg) requiredArguments.push(missingSlicingArg)
   requiredArguments.forEach((arg) => {
     const varName = `${nodeName}__${fieldName}__${arg.name.value}`
     args.push(getVariable(arg.name.value, varName))
@@ -598,9 +657,8 @@ function getSelectionSetAndVars(
       }
 
       const avs = getArgsAndVars(
-        field.arguments,
+        field,
         node.name.value,
-        field.name.value,
         config,
         schema,
         variableValues
@@ -642,9 +700,8 @@ function getSelectionSetAndVars(
       }
 
       const avs = getArgsAndVars(
-        field.arguments,
+        field,
         node.name.value,
-        field.name.value,
         config,
         schema,
         variableValues
