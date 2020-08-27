@@ -37,6 +37,7 @@
     "@types/graphql": "^14.5.0",
     "@types/jest": "^26.0.10",
     "@types/node": "^13.13.4",
+    "dedent": "^0.7.0",
     "husky": "^4.2.5",
     "jest": "^26.4.2",
     "prettier": "^2.0.5",
