@@ -34,7 +34,8 @@ function getOperationDefinition(doc: DocumentNode): OperationDefinitionNode {
 test(`Obtain random query from example schema`, () => {
   const config: Configuration = {
     breadthProbability: 0.1,
-    depthProbability: 0.1
+    depthProbability: 0.1,
+    providePlaceholders: true
   }
 
   const { queryDocument, variableValues } = generateRandomQuery(schema, config)
@@ -53,7 +54,8 @@ test(`Obtain complete query from example schema`, () => {
   const config: Configuration = {
     breadthProbability: 1,
     depthProbability: 1,
-    maxDepth: 2
+    maxDepth: 2,
+    providePlaceholders: true
   }
 
   const { queryDocument, variableValues } = generateRandomQuery(schema, config)
@@ -74,7 +76,8 @@ test(`Avoid picking field with only nested subfields when approaching max depth`
     depthProbability: 1,
     maxDepth: 3,
     considerInterfaces: true,
-    considerUnions: true
+    considerUnions: true,
+    providePlaceholders: true
   }
 
   const { queryDocument, variableValues } = generateRandomQuery(schema, config)
@@ -98,7 +101,8 @@ test(`Obtain random query from GitHub schema`, () => {
     argumentsToConsider: ['first'],
     considerInterfaces: true,
     considerUnions: true,
-    seed: 3
+    seed: 3,
+    providePlaceholders: true
   }
 
   const { queryDocument, variableValues } = generateRandomQuery(
@@ -132,7 +136,8 @@ test(`Seeded query generation is deterministic`, () => {
     argumentsToConsider: ['first'],
     considerInterfaces: true,
     considerUnions: true,
-    seed: 3
+    seed: 3,
+    providePlaceholders: true
   }
 
   const { queryDocument, variableValues } = generateRandomQuery(
@@ -182,7 +187,7 @@ test(`Missing provider leads to error`, () => {
    */
 
   expect(() => generateRandomQuery(schemaGitHub, config)).toThrowError(
-    `No provider found for "Query__codeOfConduct__key" in blub__blib__blab. Consider applying wildcard provider with "*__*" or "*__*__*"`
+    `Missing provider for non-null variable "Query__codeOfConduct__key" of type "String!". Either add a provider (e.g., using a wildcard "*__*" or "*__*__*"), or set providePlaceholders configuration option to true.`
   )
 })
 
@@ -647,4 +652,28 @@ test(`Counts are as expected`, () => {
     Object.keys(variableValues).length
   )
   expect(errors).toEqual([])
+})
+
+test('Use providePlaceholders option', () => {
+  const schema = buildSchema(`
+    scalar Custom
+
+    type Query {
+      field (user: String!, active: Boolean!, age: Int, worth: Float, id: ID, custom: Custom): String
+    }
+  `)
+  const config = {
+    seed: 1,
+    providePlaceholders: true,
+    ignoreOptionalArguments: false
+  }
+  const { variableValues } = generateRandomQuery(schema, config)
+  expect(variableValues).toEqual({
+    Query__field__user: 'PLACEHOLDER',
+    Query__field__active: true,
+    Query__field__age: 10,
+    Query__field__worth: 10.0,
+    Query__field__id: 'PLACEHOLDER',
+    Query__field__custom: 'PLACEHOLDER'
+  })
 })

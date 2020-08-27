@@ -1,4 +1,4 @@
-import { Kind, GraphQLNamedType } from 'graphql'
+import { Kind, GraphQLNamedType, TypeNode } from 'graphql'
 import { Configuration } from './generate-query'
 
 type Variables = { [varName: string]: any }
@@ -48,16 +48,25 @@ export function matchVarName(query: string, candidates: string[]): string {
   return null
 }
 
-export function getProvider(varName: string, providerMap: ProviderMap) {
+export function getProvider(
+  varName: string,
+  providerMap: ProviderMap
+): {
+  providerFound: boolean
+  provider: any | ProviderFunction
+} {
   const providerKey = matchVarName(varName, Object.keys(providerMap))
 
   if (providerKey) {
-    return providerMap[providerKey]
+    return {
+      providerFound: true,
+      provider: providerMap[providerKey]
+    }
   } else {
-    throw new Error(
-      `No provider found for "${varName}" in ` +
-        `${Object.keys(providerMap).join(', ')}.`
-    )
+    return {
+      providerFound: false,
+      provider: null
+    }
   }
 }
 
@@ -89,12 +98,36 @@ export function getProviderValue(
   config: Configuration,
   providedValues: Variables,
   argType?: GraphQLNamedType
-) {
-  const provider = getProvider(varName, config.providerMap)
+): {
+  providerFound: boolean
+  value: any
+} {
+  const { providerFound, provider } = getProvider(varName, config.providerMap)
 
-  if (typeof provider === 'function') {
-    return (provider as ProviderFunction)(providedValues, argType)
-  } else {
-    return provider
+  return {
+    providerFound,
+    value:
+      typeof provider === 'function'
+        ? (provider as ProviderFunction)(providedValues, argType)
+        : provider
+  }
+}
+
+export function getDefaultArgValue(type: TypeNode) {
+  if (type.kind === 'NamedType') {
+    if (type.name.value === 'Int') {
+      return 10
+    } else if (type.name.value === 'Float') {
+      return 10.0
+    } else if (type.name.value === 'Boolean') {
+      return true
+    } else {
+      // Case: String, ID, or custom scalar:
+      return 'PLACEHOLDER'
+    }
+  } else if (type.kind === 'NonNullType') {
+    return getDefaultArgValue(type.type)
+  } else if (type.kind === 'ListType') {
+    return [getDefaultArgValue(type.type)]
   }
 }

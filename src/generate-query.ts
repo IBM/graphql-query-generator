@@ -14,7 +14,8 @@ import {
   InputValueDefinitionNode,
   Kind,
   InlineFragmentNode,
-  GraphQLObjectType
+  GraphQLObjectType,
+  print
 } from 'graphql'
 
 import * as seedrandom from 'seedrandom'
@@ -23,7 +24,8 @@ import {
   ProviderMap,
   getProviderValue,
   isEnumType,
-  getRandomEnum
+  getRandomEnum,
+  getDefaultArgValue
 } from './provide-variables'
 
 export type Configuration = {
@@ -38,6 +40,7 @@ export type Configuration = {
   considerUnions?: boolean
   seed?: number
   pickNestedQueryField?: boolean
+  providePlaceholders?: boolean
 }
 
 type InternalConfiguration = Configuration & {
@@ -57,7 +60,9 @@ const DEFAULT_CONFIG: Configuration = {
   argumentsToConsider: [],
   considerInterfaces: false,
   considerUnions: false,
-  pickNestedQueryField: false
+  pickNestedQueryField: false,
+  providePlaceholders: false,
+  providerMap: {}
 }
 
 // Default location
@@ -250,6 +255,8 @@ function considerArgument(
   if (isOptional && config.ignoreOptionalArguments) {
     return false
   }
+
+  return true
 }
 
 function fieldHasLeafs(
@@ -473,75 +480,68 @@ function getArgsAndVars(
     variableDefinitionsMap[varName] = getVariableDefinition(varName, arg.type)
   })
 
-  // If there is no providerMap, then just create a query with null variables
-  if (config.providerMap) {
-    const variableValues: { [varName: string]: any } = {}
+  const variableValues: { [varName: string]: any } = {}
 
-    const typeFieldName = `${nodeName}__${fieldName}`
-
-    try {
-      // Check for type__field provider
-      const typeFieldProviderValue = getProviderValue(
-        typeFieldName,
-        config,
-        providedValues
-      ) as { [varName: string]: any }
-
-      // Map to full type__field__argument provider name
-      Object.entries(typeFieldProviderValue).forEach(([argName, value]) => {
-        const varName = `${typeFieldName}__${argName}`
-
-        // Make sure it is a required argument (provider can provide more that necessary)
-        if (Object.keys(variableDefinitionsMap).includes(varName)) {
-          variableValues[`${typeFieldName}__${argName}`] = value
-        }
-      })
-    } finally {
-      // Check for type__field__argument providers (and overwrite if applicable)
-      requiredArguments.forEach((arg) => {
-        const varName = `${typeFieldName}__${arg.name.value}`
-        const argType = schema.getType(getTypeName(arg.type))
-
-        if (isEnumType(argType)) {
-          variableValues[varName] = getRandomEnum(argType)
-        } else {
-          try {
-            const typeFieldArgumentProviderValue = getProviderValue(
-              varName,
-              config,
-              { ...variableValues, ...providedValues },
-              argType
-            )
-
-            variableValues[varName] = typeFieldArgumentProviderValue
-          } catch (e) {
-            // No value identified from either type__field or type__field__argument
-            if (!variableValues[varName]) {
-              throw new Error(
-                `${e} Consider applying wildcard provider with "*__*" or "*__*__*"`
-              )
-            }
-          }
-        }
-      })
-
-      return { args, variableDefinitionsMap, variableValues }
-    }
-
-    // This is a special case allowing the user to generate a query without caring for argument values
-  } else {
-    const variableValues: { [varName: string]: any } = {}
-
-    requiredArguments.forEach((arg) => {
-      const varName = `${nodeName}__${fieldName}__${arg.name.value}`
-      variableValues[varName] = null
+  // First, check for providers based on type__field query
+  // (Note: such a provider must return a value which is an object)
+  const { providerFound, value } = getProviderValue(
+    `${nodeName}__${fieldName}`,
+    config,
+    providedValues
+  )
+  if (providerFound && typeof value === 'object') {
+    Object.entries(value).forEach(([argName, value]) => {
+      const varName = `${nodeName}__${fieldName}__${argName}`
+      // Only consider required arguments (provider can provide more than necessary)
+      if (Object.keys(variableDefinitionsMap).includes(varName)) {
+        variableValues[varName] = value
+      }
     })
+  }
 
-    return {
-      args,
-      variableDefinitionsMap,
-      variableValues
+  // Second, check for providers based on type__field__argument query
+  // (Note: they overwrite possibly already provided values)
+  requiredArguments.forEach((arg) => {
+    const varName = `${nodeName}__${fieldName}__${arg.name.value}`
+    const argType = schema.getType(getTypeName(arg.type))
+    const { providerFound, value } = getProviderValue(
+      varName,
+      config,
+      { ...variableValues, ...providedValues }, // pass already used variable values
+      argType
+    )
+    if (providerFound) {
+      variableValues[varName] = value
     }
+  })
+
+  // Third, populate all so-far neglected require variables with defaults or null
+  requiredArguments.forEach((arg) => {
+    const varName = `${nodeName}__${fieldName}__${arg.name.value}`
+    const argType = schema.getType(getTypeName(arg.type))
+    if (typeof variableValues[varName] === 'undefined') {
+      if (isEnumType(argType)) {
+        variableValues[varName] = getRandomEnum(argType)
+      } else if (config.providePlaceholders) {
+        variableValues[varName] = getDefaultArgValue(arg.type)
+      } else if (arg.type.kind === 'NonNullType') {
+        throw new Error(
+          `Missing provider for non-null variable "${varName}" of type "${print(
+            arg.type
+          )}". ` +
+            `Either add a provider (e.g., using a wildcard "*__*" or "*__*__*"), ` +
+            `or set providePlaceholders configuration option to true.`
+        )
+      } else {
+        variableValues[varName] = null
+      }
+    }
+  })
+
+  return {
+    args,
+    variableDefinitionsMap,
+    variableValues
   }
 }
 
@@ -905,13 +905,6 @@ export function generateRandomMutation(
     resolveCount: 0
   }
 
-  // Provide default providerMap
-  if (typeof finalConfig.providerMap !== 'object') {
-    finalConfig.providerMap = {
-      '*__*__*': null
-    }
-  }
-
   const { mutationDocument, variableValues } = getMutationOperationDefinition(
     schema,
     finalConfig
@@ -922,7 +915,9 @@ export function generateRandomMutation(
   return {
     mutationDocument: getDocumentDefinition(definitions),
     variableValues,
-    seed: finalConfig.seed
+    seed: finalConfig.seed,
+    typeCount: finalConfig.typeCount,
+    resolveCount: finalConfig.resolveCount
   }
 }
 
