@@ -456,12 +456,15 @@ function getNextNodefactor(variableValues: { [name: string]: any }): number {
 }
 
 /**
- * Returns the first slicing argument defined in the field's @listSize diretive,
- * if:
- *  - The @listSize diretive is indeed present, and defines slicing arguments
- *  - The requiredArguements do not already include any of the defined slicing
+ * Returns the first slicing argument defined in the field's @listSize
+ * directive, if:
+ *  - The @listSize directive is indeed present, and defines slicing arguments
+ *  - The requiredArguments do not already include any of the defined slicing
  *    arguments
- *  - The @listSize diretive doesn't also set requireOneSlicingArgument to false
+ *  - The @listSize diretcive doesn't also set requireOneSlicingArgument to
+ *    false
+ *
+ * TODO: add link to specification / documentation of @listSize directive
  */
 function getMissingSlicingArg(
   requiredArguments: InputValueDefinitionNode[],
@@ -477,7 +480,11 @@ function getMissingSlicingArg(
   const slicingArgumentsArg = listSizeDirective.arguments.find(
     (arg) => arg.name.value === 'slicingArguments'
   )
-  if (typeof slicingArgumentsArg === 'undefined') return null
+  if (
+    typeof slicingArgumentsArg === 'undefined' ||
+    slicingArgumentsArg.value.kind !== 'ListValue'
+  )
+    return null
 
   // Return null if requireOneSlicingArgument is set to false:
   const requireOneSlicingArg = listSizeDirective.arguments.find(
@@ -489,9 +496,6 @@ function getMissingSlicingArg(
     requireOneSlicingArg.value.value === false
   )
     return null
-
-  // Return null if slicing arguments are not a list:
-  if (slicingArgumentsArg.value.kind !== 'ListValue') return null
 
   // Return null if a slicing argument is already used:
   const slicingArguments = slicingArgumentsArg.value.values
@@ -531,6 +535,8 @@ function getArgsAndVars(
   const requiredArguments = allArgs.filter((arg) =>
     considerArgument(arg, config)
   )
+  // Check for slicing arguments defined in a @listSize directive that should
+  // be present:
   const missingSlicingArg = getMissingSlicingArg(requiredArguments, field)
   if (missingSlicingArg) requiredArguments.push(missingSlicingArg)
   requiredArguments.forEach((arg) => {

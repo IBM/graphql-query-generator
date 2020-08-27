@@ -18,12 +18,13 @@ test(`Ignore arguments when no @listSize is used`, () => {
   const { queryDocument } = generateRandomQuery(schema, { seed: 1 })
   const query = print(queryDocument)
   expect(query.trim()).toEqual(
-    dedent(`query RandomQuery {
-      orders {
-        id
-        date
+    dedent(`
+      query RandomQuery {
+        orders {
+          id
+          date
+        }
       }
-    }
     `).trim()
   )
   expect(validate(schema, queryDocument)).toEqual([])
@@ -45,12 +46,13 @@ test(`Add "first" slicing argument when defined in @listSize`, () => {
   const { queryDocument } = generateRandomQuery(schema, { seed: 1 })
   const query = print(queryDocument)
   expect(query.trim()).toEqual(
-    dedent(`query RandomQuery($Query__orders__first: Int) {
-      orders(first: $Query__orders__first) {
-        id
-        date
+    dedent(`
+      query RandomQuery($Query__orders__first: Int) {
+        orders(first: $Query__orders__first) {
+          id
+          date
+        }
       }
-    }
     `).trim()
   )
   expect(validate(schema, queryDocument)).toEqual([])
@@ -72,12 +74,13 @@ test(`Add "last" slicing argument when defined in @listSize`, () => {
   const { queryDocument } = generateRandomQuery(schema, { seed: 1 })
   const query = print(queryDocument)
   expect(query.trim()).toEqual(
-    dedent(`query RandomQuery($Query__orders__last: Int) {
-      orders(last: $Query__orders__last) {
-        id
-        date
+    dedent(`
+      query RandomQuery($Query__orders__last: Int) {
+        orders(last: $Query__orders__last) {
+          id
+          date
+        }
       }
-    }
     `).trim()
   )
   expect(validate(schema, queryDocument)).toEqual([])
@@ -99,12 +102,13 @@ test(`Ignore @listSize when no slicing argument is defined in @listSize`, () => 
   const { queryDocument } = generateRandomQuery(schema, { seed: 1 })
   const query = print(queryDocument)
   expect(query.trim()).toEqual(
-    dedent(`query RandomQuery {
-      orders {
-        id
-        date
+    dedent(`
+      query RandomQuery {
+        orders {
+          id
+          date
+        }
       }
-    }
     `).trim()
   )
   expect(validate(schema, queryDocument)).toEqual([])
@@ -126,12 +130,13 @@ test(`Ignore non-existent slicing argument defined in @listSize`, () => {
   const { queryDocument } = generateRandomQuery(schema, { seed: 1 })
   const query = print(queryDocument)
   expect(query.trim()).toEqual(
-    dedent(`query RandomQuery {
-      orders {
-        id
-        date
+    dedent(`
+      query RandomQuery {
+        orders {
+          id
+          date
+        }
       }
-    }
     `).trim()
   )
   expect(validate(schema, queryDocument)).toEqual([])
@@ -153,12 +158,13 @@ test(`Ignore slicing argument if requireOneSlicingArgument is set to false`, () 
   const { queryDocument } = generateRandomQuery(schema, { seed: 1 })
   const query = print(queryDocument)
   expect(query.trim()).toEqual(
-    dedent(`query RandomQuery {
-      orders {
-        id
-        date
+    dedent(`
+      query RandomQuery {
+        orders {
+          id
+          date
+        }
       }
-    }
     `).trim()
   )
   expect(validate(schema, queryDocument)).toEqual([])
