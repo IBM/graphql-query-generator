@@ -19,7 +19,7 @@
     "@types/node-fetch": "^2.5.7",
     "graphql": "^14.0.2",
     "ibm-graphql-query-generator": "^1.0.4",
-    "node-fetch": "^2.6.0"
+    "node-fetch": "^2.6.1"
   },
   "devDependencies": {
     "@types/graphql": "^14.0.2",
