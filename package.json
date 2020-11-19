@@ -68,5 +68,8 @@
   },
   "dependencies": {
     "seedrandom": "^3.0.5"
-  }
+  },
+  "files": [
+    "lib"
+  ]
 }
