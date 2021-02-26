@@ -16,7 +16,7 @@ const fs = require("fs");
 const index_1 = require("./index");
 const github_providers_1 = require("./github-providers");
 // The number of randomly generated queries that should be created
-const ITERATIONS = 5;
+const ITERATIONS = 5000;
 // Execute the query to get the response
 const withResponse = true;
 function iterate(f, n) {
