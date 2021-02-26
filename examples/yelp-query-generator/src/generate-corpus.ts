@@ -51,7 +51,7 @@ async function getEntry(
       variableValues,
       response: { data }
     }
-    console.log(`Generated query ${id} out of ${ITERATIONS - 1}`)
+    console.log(`Generated query ${id + 1} out of ${ITERATIONS}`)
     fs.write(
       fd,
       `${JSON.stringify(entry, null, 2)}${id < ITERATIONS - 1 ? ',' : ''}\n`,

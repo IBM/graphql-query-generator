@@ -41,7 +41,7 @@ async function getEntry(
     const request = { query, variables: variableValues }
     await delay(1000)
     const data = withResponse
-      ? await runGitHubGraphQLQuery('json', JSON.stringify(request), token)
+      ? await runGitHubGraphQLQuery(JSON.stringify(request), token)
       : null
     const timestamp = Date.now()
     const entry = {
@@ -51,7 +51,7 @@ async function getEntry(
       variableValues,
       response: { data }
     }
-    console.log(`Generated query ${id} out of ${ITERATIONS - 1}`)
+    console.log(`Generated query ${id + 1} out of ${ITERATIONS}`)
     fs.write(
       fd,
       `${JSON.stringify(entry, null, 2)}${id < ITERATIONS - 1 ? ',' : ''}\n`,

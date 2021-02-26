@@ -47,7 +47,7 @@ To create the corpus, please provide your GitHub access token in a `.env` file, 
 
 Then, run:
 
-```base
+```bash
 npm run generate-corpus
 ```
 

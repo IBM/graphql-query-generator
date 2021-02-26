@@ -1,7 +1,11 @@
 import * as fetch from 'node-fetch'
 import { ProviderMap } from 'ibm-graphql-query-generator/lib/provide-variables'
 
-export function runYelpGraphQLQuery(kind: 'graphql' | 'json', query: string, yelpAccessToken: string) {
+export function runYelpGraphQLQuery(
+  kind: 'graphql' | 'json',
+  query: string,
+  yelpAccessToken: string
+) {
   return new Promise((resolve, reject) => {
     fetch
       .default('https://api.yelp.com/v3/graphql', {
@@ -9,7 +13,7 @@ export function runYelpGraphQLQuery(kind: 'graphql' | 'json', query: string, yel
         body: query,
         headers: {
           Authorization: `Bearer ${yelpAccessToken}`,
-          'Content-Type': 'application/' + kind
+          'Content-Type': `application/${kind}`
         }
       })
       .then((res) => {
@@ -17,11 +21,13 @@ export function runYelpGraphQLQuery(kind: 'graphql' | 'json', query: string, yel
           return res.json()
         } else if (res.status === 401) {
           throw new Error(
-            'Unauthorized Yelp API call. Did you provide a valid Yelp access token?'
+            `Unauthorized Yelp API call: ${res.status} ${res.statusText}. Did you provide a valid Yelp access token?`
           )
         } else {
           console.error(`Failed query: ${query}`)
-          throw new Error(`Unsuccessful Yelp API call: ${res.statusText}`)
+          throw new Error(
+            `Unsuccessful Yelp API call: ${res.status} ${res.statusText}.`
+          )
         }
       })
       .then((json) => {
@@ -138,7 +144,11 @@ export function getProviderMap(yelpAccessToken: string) {
           return new Promise((resolve, reject) => {
             // Delay the requests, otherwise will receive status: 429 Too Many Requests
             setTimeout(() => {
-              runYelpGraphQLQuery('graphql', getBusinessesQuery(location), yelpAccessToken)
+              runYelpGraphQLQuery(
+                'graphql',
+                getBusinessesQuery(location),
+                yelpAccessToken
+              )
                 .then((data) => resolve(extractBusinesses(data)))
                 .catch((error) =>
                   reject(`Could not fetch businesses. ${error}`)
