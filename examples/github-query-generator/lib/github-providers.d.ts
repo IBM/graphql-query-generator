@@ -2,7 +2,7 @@ import { ProviderMap } from 'ibm-graphql-query-generator/lib/provide-variables';
 /**
  * Given a GraphQL query, run it against the GitHub API and extract the data
  */
-export declare function runGitHubGraphQLQuery(kind: 'graphql' | 'json', query: string, gitHubAccessToken: string): Promise<unknown>;
+export declare function runGitHubGraphQLQuery(query: string, gitHubAccessToken: string): Promise<unknown>;
 /**
  * Scraped from https://github.com/topics
  */

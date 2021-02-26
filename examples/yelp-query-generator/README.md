@@ -45,7 +45,7 @@ To create the corpus, please provide your Yelp access token in a `.env` file, as
 
 Then, run:
 
-```base
+```bash
 npm run generate-corpus
 ```
 

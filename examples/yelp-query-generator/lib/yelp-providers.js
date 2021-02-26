@@ -10,7 +10,7 @@ function runYelpGraphQLQuery(kind, query, yelpAccessToken) {
             body: query,
             headers: {
                 Authorization: `Bearer ${yelpAccessToken}`,
-                'Content-Type': 'application/' + kind
+                'Content-Type': `application/${kind}`
             }
         })
             .then((res) => {
@@ -18,11 +18,11 @@ function runYelpGraphQLQuery(kind, query, yelpAccessToken) {
                 return res.json();
             }
             else if (res.status === 401) {
-                throw new Error('Unauthorized Yelp API call. Did you provide a valid Yelp access token?');
+                throw new Error(`Unauthorized Yelp API call: ${res.status} ${res.statusText}. Did you provide a valid Yelp access token?`);
             }
             else {
                 console.error(`Failed query: ${query}`);
-                throw new Error(`Unsuccessful Yelp API call: ${res.statusText}`);
+                throw new Error(`Unsuccessful Yelp API call: ${res.status} ${res.statusText}.`);
             }
         })
             .then((json) => {

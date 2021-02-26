@@ -6,7 +6,10 @@ import { matchVarName } from 'ibm-graphql-query-generator'
 /**
  * Given a GraphQL query, run it against the GitHub API and extract the data
  */
-export function runGitHubGraphQLQuery(kind: 'graphql' | 'json', query: string, gitHubAccessToken: string) {
+export function runGitHubGraphQLQuery(
+  query: string,
+  gitHubAccessToken: string
+) {
   return new Promise((resolve, reject) => {
     fetch
       .default('https://api.github.com/graphql', {
@@ -21,10 +24,13 @@ export function runGitHubGraphQLQuery(kind: 'graphql' | 'json', query: string, g
           return res.json()
         } else if (res.status === 401) {
           throw new Error(
-            'Unauthorized GitHub API call. Did you provide a valid GitHub access token?'
+            `Unauthorized GitHub API call: ${res.status} ${res.statusText}. Did you provide a valid GitHub access token?`
           )
         } else {
-          throw new Error('Unsuccessful GitHub API call.')
+          console.error(`Failed query: ${query}`)
+          throw new Error(
+            `Unsuccessful GitHub API call: ${res.status} ${res.statusText}.`
+          )
         }
       })
       .then((json: any) => {
@@ -37,8 +43,10 @@ export function runGitHubGraphQLQuery(kind: 'graphql' | 'json', query: string, g
               `GitHub access token has insufficient scopes. + ${insufficientScopesError.message}`
             )
           }
-          console.error(`Errors in response: ${JSON.stringify(json.errors)}`);
+
+          console.error(`Errors in response: ${JSON.stringify(json.errors)}`)
         }
+
         resolve(json.data)
       })
       .catch(reject)
@@ -465,7 +473,6 @@ export function getProviderMap(gitHubAccessToken: string) {
     const marketplaceCategorySlugsPromise = new Promise<string[]>(
       (resolve, reject) => {
         runGitHubGraphQLQuery(
-          'graphql',
           JSON.stringify({ query: marketplaceCategorySlugsQuery }),
           gitHubAccessToken
         ).then(
@@ -482,7 +489,6 @@ export function getProviderMap(gitHubAccessToken: string) {
     const marketplaceListingSlugsPromise = new Promise<string[]>(
       (resolve, reject) => {
         runGitHubGraphQLQuery(
-          'graphql',
           JSON.stringify({ query: marketplaceListingSlugsQuery }),
           gitHubAccessToken
         ).then(
@@ -497,44 +503,47 @@ export function getProviderMap(gitHubAccessToken: string) {
     )
 
     const licenseKeysPromise = new Promise<string[]>((resolve, reject) => {
-      runGitHubGraphQLQuery('graphql',
-        JSON.stringify({ query: licenseKeysQuery }), gitHubAccessToken)
-        .then(
-          (data) => {
-            resolve(extractLicenseKeys(data))
-          },
-          (error) => {
-            reject(`Could not fetch license keys. ${error}`)
-          }
-        )
+      runGitHubGraphQLQuery(
+        JSON.stringify({ query: licenseKeysQuery }),
+        gitHubAccessToken
+      ).then(
+        (data) => {
+          resolve(extractLicenseKeys(data))
+        },
+        (error) => {
+          reject(`Could not fetch license keys. ${error}`)
+        }
+      )
     })
 
     const codeOfConductKeysPromise = new Promise<string[]>(
       (resolve, reject) => {
-        runGitHubGraphQLQuery('graphql',
-          JSON.stringify({ query: codeOfConductKeysQuery }), gitHubAccessToken)
-          .then(
-            (data) => {
-              resolve(extractCodeOfConductKeys(data))
-            },
-            (error) => {
-              reject(`Could not fetch code of conduct keys. ${error}`)
-            }
-          )
+        runGitHubGraphQLQuery(
+          JSON.stringify({ query: codeOfConductKeysQuery }),
+          gitHubAccessToken
+        ).then(
+          (data) => {
+            resolve(extractCodeOfConductKeys(data))
+          },
+          (error) => {
+            reject(`Could not fetch code of conduct keys. ${error}`)
+          }
+        )
       }
     )
 
     const ghsaIdsPromise = new Promise<string[]>((resolve, reject) => {
-      runGitHubGraphQLQuery('graphql',
-        JSON.stringify({ query: ghsaIdsQuery }), gitHubAccessToken)
-        .then(
-          (data) => {
-            resolve(extractGhsaIds(data))
-          },
-          (error) => {
-            reject(`Could not fetch GHSA IDs. ${error}`)
-          }
-        )
+      runGitHubGraphQLQuery(
+        JSON.stringify({ query: ghsaIdsQuery }),
+        gitHubAccessToken
+      ).then(
+        (data) => {
+          resolve(extractGhsaIds(data))
+        },
+        (error) => {
+          reject(`Could not fetch GHSA IDs. ${error}`)
+        }
+      )
     })
 
     const reposPromise = new Promise<{
@@ -542,16 +551,17 @@ export function getProviderMap(gitHubAccessToken: string) {
       orgRepos: OrgRepo[]
       allRepos: (UserRepo | OrgRepo)[]
     }>((resolve, reject) => {
-      runGitHubGraphQLQuery('graphql',
-        JSON.stringify({ query: reposQuery }), gitHubAccessToken)
-        .then(
-          (data) => {
-            resolve(extractRepos(data))
-          },
-          (error) => {
-            reject(`Could not fetch repos. ${error}`)
-          }
-        )
+      runGitHubGraphQLQuery(
+        JSON.stringify({ query: reposQuery }),
+        gitHubAccessToken
+      ).then(
+        (data) => {
+          resolve(extractRepos(data))
+        },
+        (error) => {
+          reject(`Could not fetch repos. ${error}`)
+        }
+      )
     })
 
     Promise.all([

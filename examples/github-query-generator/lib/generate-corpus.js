@@ -16,7 +16,7 @@ const fs = require("fs");
 const index_1 = require("./index");
 const github_providers_1 = require("./github-providers");
 // The number of randomly generated queries that should be created
-const ITERATIONS = 5000;
+const ITERATIONS = 5;
 // Execute the query to get the response
 const withResponse = true;
 function iterate(f, n) {
@@ -39,7 +39,7 @@ function getEntry(token, queryGenerator, id, fd) {
             const request = { query, variables: variableValues };
             yield delay(1000);
             const data = withResponse
-                ? yield github_providers_1.runGitHubGraphQLQuery('json', JSON.stringify(request), token)
+                ? yield github_providers_1.runGitHubGraphQLQuery(JSON.stringify(request), token)
                 : null;
             const timestamp = Date.now();
             const entry = {
@@ -49,7 +49,7 @@ function getEntry(token, queryGenerator, id, fd) {
                 variableValues,
                 response: { data }
             };
-            console.log(`Generated query ${id} out of ${ITERATIONS - 1}`);
+            console.log(`Generated query ${id + 1} out of ${ITERATIONS}`);
             fs.write(fd, `${JSON.stringify(entry, null, 2)}${id < ITERATIONS - 1 ? ',' : ''}\n`, (err) => {
                 if (err)
                     console.log('Error writing file:', err);
@@ -81,7 +81,7 @@ if (process.env.GITHUB_ACCESS_TOKEN) {
             });
             console.log('Finished generating query corpus');
         })
-            .catch(err => {
+            .catch((err) => {
             console.log('Finished generating query corpus with error' + err);
         });
     });
