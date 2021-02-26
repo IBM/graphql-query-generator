@@ -1,6 +1,6 @@
 {
   "name": "ibm-graphql-query-generator",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Randomly generate a GraphQL query using a GraphQL schema",
   "author": "Erik Wittern",
   "contributors": [
