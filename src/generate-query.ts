@@ -19,7 +19,9 @@ import {
   StringValueNode,
   NamedTypeNode,
   DirectiveNode,
-  GraphQLNamedType
+  GraphQLNamedType,
+  ListValueNode,
+  BooleanValueNode
 } from 'graphql'
 
 import * as seedrandom from 'seedrandom'
@@ -476,31 +478,26 @@ function getMissingSlicingArg(
   field: FieldDefinitionNode,
   schema: GraphQLSchema
 ): InputValueDefinitionNode {
-  // Return null if there is no @listSize directive:
-  const listSizeDirective = getListSizeDirective(field)
-  if (typeof listSizeDirective === 'undefined') return null
-
-  // Return null if @listSize directive defines no slicing arguments:
-  const slicingArgumentsArg = getSlicingArguments(listSizeDirective)
-  if (
-    typeof slicingArgumentsArg === 'undefined' ||
-    slicingArgumentsArg.value.kind !== 'ListValue'
+  // Return null if @listSize directive is not found or if it defines no slicing arguments:
+  const { slicingArgumentsArg, listSizeDirective } = getSlicingArguments(
+    field,
+    undefined
   )
-    return null
+  if (!slicingArgumentsArg || !listSizeDirective) return null
 
   // Return null if requireOneSlicingArgument is set to false:
-  const requireOneSlicingArg = listSizeDirective.arguments.find(
-    (arg) => arg.name.value === 'requireOneSlicingArgument'
+  const { requireOneSlicingArg } = getRequireOneSlicingArgument(
+    undefined,
+    listSizeDirective
   )
   if (
-    typeof requireOneSlicingArg !== 'undefined' &&
-    requireOneSlicingArg.value.kind === 'BooleanValue' &&
-    requireOneSlicingArg.value.value === false
+    requireOneSlicingArg &&
+    (requireOneSlicingArg.value as BooleanValueNode).value === false
   )
     return null
 
   // Return null if a slicing argument is already used:
-  const slicingArguments = slicingArgumentsArg.value.values
+  const slicingArguments = (slicingArgumentsArg.value as ListValueNode).values
     .filter((value) => value.kind === 'StringValue')
     .map((value) => (value as StringValueNode).value)
   const usesSlicingArg = slicingArguments.some((slicingArg) =>
@@ -676,10 +673,52 @@ function getListSizeDirective(field: FieldDefinitionNode): DirectiveNode {
   return field?.directives.find((dir) => dir.name.value === 'listSize')
 }
 
-function getSlicingArguments(listSizeDirective: DirectiveNode): ArgumentNode {
-  return listSizeDirective.arguments.find(
+function getSlicingArguments(
+  field: FieldDefinitionNode,
+  listSizeDirective: DirectiveNode
+): {
+  slicingArgumentsArg: ArgumentNode
+  listSizeDirective: DirectiveNode
+} {
+  listSizeDirective = listSizeDirective
+    ? listSizeDirective
+    : getListSizeDirective(field)
+  if (!listSizeDirective)
+    return { slicingArgumentsArg: undefined, listSizeDirective: undefined }
+
+  const slicingArgumentsArg = listSizeDirective.arguments.find(
     (arg) => arg.name.value === 'slicingArguments'
   )
+
+  if (slicingArgumentsArg && slicingArgumentsArg.value.kind !== 'ListValue')
+    return { slicingArgumentsArg: undefined, listSizeDirective: undefined }
+
+  return { slicingArgumentsArg, listSizeDirective }
+}
+
+function getRequireOneSlicingArgument(
+  field: FieldDefinitionNode,
+  listSizeDirective: DirectiveNode
+): {
+  requireOneSlicingArg: ArgumentNode
+  listSizeDirective: DirectiveNode
+} {
+  listSizeDirective = listSizeDirective
+    ? listSizeDirective
+    : getListSizeDirective(field)
+  if (!listSizeDirective)
+    return { requireOneSlicingArg: undefined, listSizeDirective: undefined }
+
+  const requireOneSlicingArg = listSizeDirective.arguments.find(
+    (arg) => arg.name.value === 'requireOneSlicingArgument'
+  )
+  if (
+    !requireOneSlicingArg ||
+    requireOneSlicingArg.value.kind !== 'BooleanValue'
+  )
+    return { requireOneSlicingArg: undefined, listSizeDirective: undefined }
+
+  return { requireOneSlicingArg, listSizeDirective }
 }
 
 function getListSizeDirectiveDefaultValue(
@@ -688,23 +727,23 @@ function getListSizeDirectiveDefaultValue(
   config: InternalConfiguration,
   schema: GraphQLSchema
 ) {
-  const slicingArgumentsPaths1 = getSlicingArguments(listSizeDirective)
-  if (slicingArgumentsPaths1.value.kind !== 'ListValue')
-    throw new Error(
-      "listsize directive's slicingArgument argument is not a ListValue"
-    )
-  let slicingArgumentsPaths = slicingArgumentsPaths1.value.values.map(
+  const { slicingArgumentsArg } = getSlicingArguments(
+    undefined,
+    listSizeDirective
+  )
+  if (!slicingArgumentsArg) return undefined
+  let slicingArgumentsPaths = (slicingArgumentsArg.value as ListValueNode).values.map(
     (value) => {
       if (value.kind === 'StringValue') return value.value
     }
   )
-  const requireOneSlicingArgument = listSizeDirective.arguments.find(
-    (arg) => arg.name.value === 'requireOneSlicingArgument'
+  const { requireOneSlicingArg } = getRequireOneSlicingArgument(
+    undefined,
+    listSizeDirective
   )
   if (
-    !requireOneSlicingArgument ||
-    (requireOneSlicingArgument.value.kind === 'BooleanValue' &&
-      requireOneSlicingArgument.value.value === true)
+    !requireOneSlicingArg ||
+    (requireOneSlicingArg.value as BooleanValueNode).value === true
   ) {
     slicingArgumentsPaths = slicingArgumentsPaths.slice(0, 1)
   }
