@@ -644,6 +644,7 @@ function getArgsAndVars(
         const listSizeDirective = field?.directives.find(
           (dir) => dir.name.value === 'listSize'
         )
+        variableValues[varName] = getDefaultArgValue(schema, config, arg.type)
         if (listSizeDirective) {
           const listSizeDirectiveDefaultValue = getListSizeDirectiveDefaultValue(
             listSizeDirective,
@@ -653,10 +654,8 @@ function getArgsAndVars(
           )
           variableValues[varName] = merge.recursive(
             listSizeDirectiveDefaultValue,
-            getDefaultArgValue(schema, config, arg.type)
+            variableValues[varName]
           )
-        } else {
-          variableValues[varName] = getDefaultArgValue(schema, config, arg.type)
         }
       } else if (arg.type.kind === 'NonNullType') {
         throw new Error(
@@ -707,7 +706,6 @@ function getListSizeDirectiveDefaultValue(
   ) {
     slicingArgumentsPaths = slicingArgumentsPaths.slice(0, 1)
   }
-  //console.log(slicingArgumentsPaths)
   const slicingArgumentsTokenizedPaths = slicingArgumentsPaths.map((value) =>
     value.split('.')
   )
@@ -744,25 +742,17 @@ function getListSizeDirectiveDefaultValueHelper(
       let nextType = type.astNode.fields.find((field) => {
         return field.name.value === tokenizedPath[1]
       })
+      obj[tokenizedPath[1]] = getListSizeDirectiveDefaultValueHelper(
+        tokenizedPath.slice(1),
+        nextType.type,
+        config,
+        schema
+      )
       if (
         typeNode.kind === 'ListType' ||
         (typeNode.kind === 'NonNullType' && typeNode.type.kind === 'ListType')
       ) {
-        obj[tokenizedPath[1]] = [
-          getListSizeDirectiveDefaultValueHelper(
-            tokenizedPath.slice(1, tokenizedPath.length),
-            nextType.type,
-            config,
-            schema
-          )
-        ]
-      } else {
-        obj[tokenizedPath[1]] = getListSizeDirectiveDefaultValueHelper(
-          tokenizedPath.slice(1, tokenizedPath.length),
-          nextType.type,
-          config,
-          schema
-        )
+        obj[tokenizedPath[1]] = [obj[tokenizedPath[1]]]
       }
     }
   }
