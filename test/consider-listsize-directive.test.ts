@@ -170,8 +170,7 @@ test(`Ignore slicing argument if requireOneSlicingArgument is set to false`, () 
   expect(validate(schema, queryDocument)).toEqual([])
 })
 
-test(`blip`, () => {
-  //Add nested slicing argument ("args.last") when defined in @listSize
+test(`Add nested slicing argument ("args.first") when defined in @listSize`, () => {
   const schema = buildSchema(`
     directive @listSize(requireOneSlicingArgument: Boolean = true, assumedSize: Int, slicingArguments: [String], sizedFields: [String]) on FIELD_DEFINITION
 
@@ -220,8 +219,7 @@ test(`blip`, () => {
   expect(validate(schema, queryDocument)).toEqual([])
 })
 
-test(`blap`, () => {
-  //Add nested slicing argument ("args.last") when defined in @listSize
+test(`Add nested required argument ("args.first")`, () => {
   const schema = buildSchema(`
     directive @listSize(requireOneSlicingArgument: Boolean = true, assumedSize: Int, slicingArguments: [String], sizedFields: [String]) on FIELD_DEFINITION
 
@@ -256,7 +254,6 @@ test(`blap`, () => {
     `).trim()
   )
   const variables = JSON.stringify(variableValues, null, 2)
-  //console.log(variables)
   expect(variables.trim()).toEqual(
     dedent(`
       {
@@ -269,8 +266,7 @@ test(`blap`, () => {
   expect(validate(schema, queryDocument)).toEqual([])
 })
 
-test(`blop`, () => {
-  //Add nested slicing argument ("args.last") when defined in @listSize
+test(`Add nested slicing argument ("args.first" and "args.complex.last") when defined in @listSize`, () => {
   const schema = buildSchema(`
     directive @listSize(requireOneSlicingArgument: Boolean = true, assumedSize: Int, slicingArguments: [String], sizedFields: [String]) on FIELD_DEFINITION
     
@@ -311,7 +307,6 @@ test(`blop`, () => {
     `).trim()
   )
   const variables = JSON.stringify(variableValues, null, 2)
-  //console.log(variables)
   expect(variables.trim()).toEqual(
     dedent(`
       {
