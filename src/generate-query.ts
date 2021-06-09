@@ -517,9 +517,11 @@ function getMissingSlicingArg(
   // Return the first slicing arguments:
   return field.arguments.find((arg) => {
     return slicingArguments.find((slicingArgument) => {
-      let slicingArgumentTokens = slicingArgument.split('.')
-      let slicingArgumentToken = slicingArgumentTokens[0]
-      let ret = getMissingSlicingArgHelper(slicingArgumentTokens, arg, schema)
+      let ret = getMissingSlicingArgHelper(
+        slicingArgument.split('.'),
+        arg,
+        schema
+      )
       if (ret) return arg
     })
   })
@@ -531,10 +533,9 @@ function getMissingSlicingArgHelper1(
   schema: GraphQLSchema
 ) {
   if (type?.astNode?.kind === Kind.INPUT_OBJECT_TYPE_DEFINITION) {
-    //candidates = type.astNode.fields.map((field)=>{return field}) // TODO use this
     return type.astNode.fields.find((field) => {
       let ret = getMissingSlicingArgHelper(
-        tokenizedPath.slice(1, tokenizedPath.length),
+        tokenizedPath.slice(1),
         field,
         schema
       )
@@ -696,7 +697,6 @@ function getListSizeDirectiveDefaultValue(
       if (value.kind === 'StringValue') return value.value
     }
   )
-  // TODO add requireOneSlicingArg check here
   const requireOneSlicingArgument = listSizeDirective.arguments.find(
     (arg) => arg.name.value === 'requireOneSlicingArgument'
   )
