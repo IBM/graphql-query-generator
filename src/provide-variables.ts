@@ -24,13 +24,13 @@ export function matchVarName(query: string, candidates: string[]): string {
     return query
   }
 
-  const queryParts = query.split(/(?<!__)__/g)
+  const queryParts = query.split(/__(?!__)/g)
   if (!(queryParts.length === 2 || queryParts.length === 3)) {
     throw new Error(`Invalid variable name query: ${query}`)
   }
 
   for (let candidate of candidates) {
-    const candidateParts = candidate.split(/(?<!__)__/g)
+    const candidateParts = candidate.split(/__(?!__)/g)
     if (!(candidateParts.length === 2 || candidateParts.length === 3)) {
       throw new Error(`Invalid variable name: ${candidate}`)
     }
