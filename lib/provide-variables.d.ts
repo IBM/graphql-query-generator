@@ -1,5 +1,5 @@
-import { GraphQLNamedType, TypeNode } from 'graphql';
-import { Configuration } from './generate-query';
+import { GraphQLNamedType, TypeNode, GraphQLSchema } from 'graphql';
+import { Configuration, InternalConfiguration } from './generate-query';
 declare type Variables = {
     [varName: string]: any;
 };
@@ -20,5 +20,5 @@ export declare function getProviderValue(varName: string, config: Configuration,
     providerFound: boolean;
     value: any;
 };
-export declare function getDefaultArgValue(type: TypeNode): any;
+export declare function getDefaultArgValue(schema: GraphQLSchema, config: InternalConfiguration, type: TypeNode): any;
 export {};
