@@ -519,21 +519,8 @@ function getMissingSlicingArg(
     return slicingArguments.find((slicingArgument) => {
       let slicingArgumentTokens = slicingArgument.split('.')
       let slicingArgumentToken = slicingArgumentTokens[0]
-      if (slicingArgumentToken === arg.name.value) {
-        if (
-          arg.kind === Kind.INPUT_VALUE_DEFINITION &&
-          arg.type.kind === Kind.NAMED_TYPE
-        ) {
-          let type = schema.getType(arg.type.name.value)
-          let ret = getMissingSlicingArgHelper1(
-            slicingArgumentTokens.slice(1, slicingArgumentTokens.length),
-            type,
-            schema
-          )
-          if (ret) return arg
-        }
-        return arg
-      }
+      let ret = getMissingSlicingArgHelper(slicingArgumentTokens, arg, schema)
+      if (ret) return arg
     })
   })
 }
@@ -561,8 +548,9 @@ function getMissingSlicingArgHelper(
   field: InputValueDefinitionNode,
   schema: GraphQLSchema
 ) {
-  if (tokenizedPath.length < 1 || field.name.value !== tokenizedPath[0])
-    return undefined
+  if (tokenizedPath.length < 1) return undefined
+  else if (field.name.value !== tokenizedPath[0]) return undefined
+  else if (tokenizedPath.length === 1) return field
 
   if (
     field.kind !== Kind.INPUT_VALUE_DEFINITION ||
