@@ -477,15 +477,11 @@ function getMissingSlicingArg(
   schema: GraphQLSchema
 ): InputValueDefinitionNode {
   // Return null if there is no @listSize directive:
-  const listSizeDirective = field.directives.find(
-    (dir) => dir.name.value === 'listSize'
-  )
+  const listSizeDirective = getListSizeDirective(field)
   if (typeof listSizeDirective === 'undefined') return null
 
   // Return null if @listSize directive defines no slicing arguments:
-  const slicingArgumentsArg = listSizeDirective.arguments.find(
-    (arg) => arg.name.value === 'slicingArguments'
-  )
+  const slicingArgumentsArg = getSlicingArguments(listSizeDirective)
   if (
     typeof slicingArgumentsArg === 'undefined' ||
     slicingArgumentsArg.value.kind !== 'ListValue'
@@ -641,10 +637,8 @@ function getArgsAndVars(
       if (isEnumType(argType)) {
         variableValues[varName] = getRandomEnum(argType)
       } else if (config.providePlaceholders) {
-        const listSizeDirective = field?.directives.find(
-          (dir) => dir.name.value === 'listSize'
-        )
         variableValues[varName] = getDefaultArgValue(schema, config, arg.type)
+        const listSizeDirective = getListSizeDirective(field)
         if (listSizeDirective) {
           const listSizeDirectiveDefaultValue = getListSizeDirectiveDefaultValue(
             listSizeDirective,
@@ -678,15 +672,23 @@ function getArgsAndVars(
   }
 }
 
+function getListSizeDirective(field: FieldDefinitionNode): DirectiveNode {
+  return field?.directives.find((dir) => dir.name.value === 'listSize')
+}
+
+function getSlicingArguments(listSizeDirective: DirectiveNode): ArgumentNode {
+  return listSizeDirective.arguments.find(
+    (arg) => arg.name.value === 'slicingArguments'
+  )
+}
+
 function getListSizeDirectiveDefaultValue(
   listSizeDirective: DirectiveNode,
   typeNode: TypeNode,
   config: InternalConfiguration,
   schema: GraphQLSchema
 ) {
-  const slicingArgumentsPaths1 = listSizeDirective.arguments.find(
-    (arg) => arg.name.value === 'slicingArguments'
-  )
+  const slicingArgumentsPaths1 = getSlicingArguments(listSizeDirective)
   if (slicingArgumentsPaths1.value.kind !== 'ListValue')
     throw new Error(
       "listsize directive's slicingArgument argument is not a ListValue"
