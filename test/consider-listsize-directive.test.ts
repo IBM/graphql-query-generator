@@ -169,3 +169,160 @@ test(`Ignore slicing argument if requireOneSlicingArgument is set to false`, () 
   )
   expect(validate(schema, queryDocument)).toEqual([])
 })
+
+test(`blip`, () => {
+  //Add nested slicing argument ("args.last") when defined in @listSize
+  const schema = buildSchema(`
+    directive @listSize(requireOneSlicingArgument: Boolean = true, assumedSize: Int, slicingArguments: [String], sizedFields: [String]) on FIELD_DEFINITION
+
+    input Args {
+      first: Int
+      after: ID
+      last: Int
+      before: ID
+    }
+
+    type Order {
+      id: ID
+      date: String
+    }
+
+    type Query {
+      orders(args: Args): [Order] @listSize(slicingArguments: ["args.first", "args.last"])
+    }
+  `)
+  const config = {
+    providePlaceholders: true,
+    seed: 1
+  }
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
+  const query = print(queryDocument)
+  expect(query.trim()).toEqual(
+    dedent(`
+      query RandomQuery($Query__orders__args: Args) {
+        orders(args: $Query__orders__args) {
+          id
+          date
+        }
+      }
+    `).trim()
+  )
+  const variables = JSON.stringify(variableValues, null, 2)
+  expect(variables.trim()).toEqual(
+    dedent(`
+      {
+        "Query__orders__args": {
+          "first": 10
+        }
+      }
+    `).trim()
+  )
+  expect(validate(schema, queryDocument)).toEqual([])
+})
+
+test(`blap`, () => {
+  //Add nested slicing argument ("args.last") when defined in @listSize
+  const schema = buildSchema(`
+    directive @listSize(requireOneSlicingArgument: Boolean = true, assumedSize: Int, slicingArguments: [String], sizedFields: [String]) on FIELD_DEFINITION
+
+    input Args {
+      first: Int!
+      after: ID
+    }
+
+    type Order {
+      id: ID
+      date: String
+    }
+
+    type Query {
+      orders(args: Args!): [Order]
+    }
+  `)
+  const config = {
+    providePlaceholders: true,
+    seed: 1
+  }
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
+  const query = print(queryDocument)
+  expect(query.trim()).toEqual(
+    dedent(`
+      query RandomQuery($Query__orders__args: Args!) {
+        orders(args: $Query__orders__args) {
+          id
+          date
+        }
+      }
+    `).trim()
+  )
+  const variables = JSON.stringify(variableValues, null, 2)
+  //console.log(variables)
+  expect(variables.trim()).toEqual(
+    dedent(`
+      {
+        "Query__orders__args": {
+          "first": 10
+        }
+      }
+    `).trim()
+  )
+  expect(validate(schema, queryDocument)).toEqual([])
+})
+
+test(`blop`, () => {
+  //Add nested slicing argument ("args.last") when defined in @listSize
+  const schema = buildSchema(`
+    directive @listSize(requireOneSlicingArgument: Boolean = true, assumedSize: Int, slicingArguments: [String], sizedFields: [String]) on FIELD_DEFINITION
+    
+    input MoreArgs {
+      last: Int!
+      before: ID
+    }
+
+    input Args {
+      first: Int!
+      after: ID
+      complex: MoreArgs!
+    }
+
+    type Order {
+      id: ID
+      date: String
+    }
+
+    type Query {
+      orders(args: Args!): [Order]
+    }
+  `)
+  const config = {
+    providePlaceholders: true,
+    seed: 1
+  }
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
+  const query = print(queryDocument)
+  expect(query.trim()).toEqual(
+    dedent(`
+      query RandomQuery($Query__orders__args: Args!) {
+        orders(args: $Query__orders__args) {
+          id
+          date
+        }
+      }
+    `).trim()
+  )
+  const variables = JSON.stringify(variableValues, null, 2)
+  //console.log(variables)
+  expect(variables.trim()).toEqual(
+    dedent(`
+      {
+        "Query__orders__args": {
+          "first": 10,
+          "complex": {
+            "last": 10
+          }
+        }
+      }
+    `).trim()
+  )
+  expect(validate(schema, queryDocument)).toEqual([])
+})

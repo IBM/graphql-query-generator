@@ -1,5 +1,15 @@
-import { Kind, GraphQLNamedType, TypeNode } from 'graphql'
-import { Configuration } from './generate-query'
+import {
+  Kind,
+  GraphQLNamedType,
+  TypeNode,
+  GraphQLSchema,
+  GraphQLInputObjectType
+} from 'graphql'
+import {
+  Configuration,
+  considerArgument,
+  InternalConfiguration
+} from './generate-query'
 
 type Variables = { [varName: string]: any }
 
@@ -113,7 +123,11 @@ export function getProviderValue(
   }
 }
 
-export function getDefaultArgValue(type: TypeNode) {
+export function getDefaultArgValue(
+  schema: GraphQLSchema,
+  config: InternalConfiguration,
+  type: TypeNode
+) {
   if (type.kind === 'NamedType') {
     if (type.name.value === 'Int') {
       return 10
@@ -122,12 +136,33 @@ export function getDefaultArgValue(type: TypeNode) {
     } else if (type.name.value === 'Boolean') {
       return true
     } else {
-      // Case: String, ID, or custom scalar:
-      return 'PLACEHOLDER'
+      if (schema.getType(type.name.value)) {
+        const typeDef = schema.getType(type.name.value)
+        if (
+          !(typeDef && typeDef?.astNode?.kind === 'InputObjectTypeDefinition')
+        )
+          return 'PLACEHOLDER'
+        //throw new Error('Cannot find input object type definition with this name ' + type.name.value)
+        if (typeDef.astNode.kind === 'InputObjectTypeDefinition') {
+          const fields = typeDef.astNode.fields
+          const requiredArguments = Object.entries(fields)
+            .map(([_, value]) => value)
+            .filter((type) => {
+              return considerArgument(type, config)
+            })
+          return requiredArguments.reduce((obj, arg) => {
+            obj[arg.name.value] = getDefaultArgValue(schema, config, arg.type)
+            return obj
+          }, {})
+        }
+      } else {
+        // Case: String, ID, or custom scalar:
+        return 'PLACEHOLDER'
+      }
     }
   } else if (type.kind === 'NonNullType') {
-    return getDefaultArgValue(type.type)
+    return getDefaultArgValue(schema, config, type.type)
   } else if (type.kind === 'ListType') {
-    return [getDefaultArgValue(type.type)]
+    return [getDefaultArgValue(schema, config, type.type)]
   }
 }

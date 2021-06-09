@@ -16,10 +16,14 @@ import {
   InlineFragmentNode,
   GraphQLObjectType,
   print,
-  StringValueNode
+  StringValueNode,
+  NamedTypeNode,
+  DirectiveNode
 } from 'graphql'
 
 import * as seedrandom from 'seedrandom'
+
+import merge from 'merge'
 
 import {
   ProviderMap,
@@ -44,7 +48,7 @@ export type Configuration = {
   providePlaceholders?: boolean
 }
 
-type InternalConfiguration = Configuration & {
+export type InternalConfiguration = Configuration & {
   seed: number
   nextSeed?: number
   nodeFactor: number
@@ -220,7 +224,7 @@ function isUnionField(
   return typeof ast !== 'undefined' && ast.kind === Kind.UNION_TYPE_DEFINITION
 }
 
-function considerArgument(
+export function considerArgument(
   arg: InputValueDefinitionNode,
   config: InternalConfiguration
 ): boolean {
@@ -468,7 +472,8 @@ function getNextNodefactor(variableValues: { [name: string]: any }): number {
  */
 function getMissingSlicingArg(
   requiredArguments: InputValueDefinitionNode[],
-  field: FieldDefinitionNode
+  field: FieldDefinitionNode,
+  schema: GraphQLSchema
 ): InputValueDefinitionNode {
   // Return null if there is no @listSize directive:
   const listSizeDirective = field.directives.find(
@@ -509,9 +514,35 @@ function getMissingSlicingArg(
   if (usesSlicingArg) return null
 
   // Return the first slicing arguments:
-  return field.arguments.find((arg) =>
-    slicingArguments.includes(arg.name.value)
-  )
+  return field.arguments.find((arg) => {
+    return slicingArguments.find((slicingArgument) => {
+      let result = null
+      let candidates = [arg]
+      let slicingArgumentTokens = slicingArgument.split('.')
+      for (let i = 0; i < slicingArgumentTokens.length; i++) {
+        let slicingArgumentToken = slicingArgumentTokens[i]
+        for (let j = 0; j < candidates.length; j++) {
+          let candidate = candidates[j]
+          if (slicingArgumentToken === candidate.name.value) {
+            result = candidate
+            if (
+              candidate.kind === Kind.INPUT_VALUE_DEFINITION &&
+              candidate.type.kind === Kind.NAMED_TYPE
+            ) {
+              let type = schema.getType(candidate.type.name.value)
+              if (type?.astNode?.kind === Kind.INPUT_OBJECT_TYPE_DEFINITION) {
+                //candidates = type.astNode.fields.map((field)=>{return field}) // TODO use this
+                return type.astNode.fields.find((field) => {
+                  return field.name.value === slicingArgumentTokens[i + 1]
+                })
+              }
+            }
+          }
+        }
+      }
+      return result
+    })
+  })
 }
 
 function getArgsAndVars(
@@ -537,7 +568,11 @@ function getArgsAndVars(
   )
   // Check for slicing arguments defined in a @listSize directive that should
   // be present:
-  const missingSlicingArg = getMissingSlicingArg(requiredArguments, field)
+  const missingSlicingArg = getMissingSlicingArg(
+    requiredArguments,
+    field,
+    schema
+  )
   if (missingSlicingArg) requiredArguments.push(missingSlicingArg)
   requiredArguments.forEach((arg) => {
     const varName = `${nodeName}__${fieldName}__${arg.name.value}`
@@ -588,7 +623,23 @@ function getArgsAndVars(
       if (isEnumType(argType)) {
         variableValues[varName] = getRandomEnum(argType)
       } else if (config.providePlaceholders) {
-        variableValues[varName] = getDefaultArgValue(arg.type)
+        const listSizeDirective = field?.directives.find(
+          (dir) => dir.name.value === 'listSize'
+        )
+        if (listSizeDirective) {
+          const listSizeDirectiveDefaultValue = getListSizeDirectiveDefaultValue(
+            listSizeDirective,
+            arg.type,
+            config,
+            schema
+          )
+          variableValues[varName] = merge.recursive(
+            listSizeDirectiveDefaultValue,
+            getDefaultArgValue(schema, config, arg.type)
+          )
+        } else {
+          variableValues[varName] = getDefaultArgValue(schema, config, arg.type)
+        }
       } else if (arg.type.kind === 'NonNullType') {
         throw new Error(
           `Missing provider for non-null variable "${varName}" of type "${print(
@@ -607,6 +658,105 @@ function getArgsAndVars(
     args,
     variableDefinitionsMap,
     variableValues
+  }
+}
+
+function getListSizeDirectiveDefaultValue(
+  listSizeDirective: DirectiveNode,
+  typeNode: TypeNode,
+  config: InternalConfiguration,
+  schema: GraphQLSchema
+) {
+  const slicingArgumentsPaths1 = listSizeDirective.arguments.find(
+    (arg) => arg.name.value === 'slicingArguments'
+  )
+  if (slicingArgumentsPaths1.value.kind !== 'ListValue')
+    throw new Error(
+      "listsize directive's slicingArgument argument is not a ListValue"
+    )
+  let slicingArgumentsPaths = slicingArgumentsPaths1.value.values.map(
+    (value) => {
+      if (value.kind === 'StringValue') return value.value
+    }
+  )
+  // TODO add requireOneSlicingArg check here
+  const requireOneSlicingArgument = listSizeDirective.arguments.find(
+    (arg) => arg.name.value === 'requireOneSlicingArgument'
+  )
+  if (
+    !requireOneSlicingArgument ||
+    (requireOneSlicingArgument.value.kind === 'BooleanValue' &&
+      requireOneSlicingArgument.value.value === true)
+  ) {
+    slicingArgumentsPaths = slicingArgumentsPaths.slice(0, 1)
+  }
+  //console.log(slicingArgumentsPaths)
+  const slicingArgumentsTokenizedPaths = slicingArgumentsPaths.map((value) =>
+    value.split('.')
+  )
+
+  return slicingArgumentsTokenizedPaths.reduce((res, tokenizedPath) => {
+    return merge.recursive(
+      res,
+      getListSizeDirectiveDefaultValueHelper(
+        tokenizedPath,
+        typeNode,
+        config,
+        schema
+      )
+    )
+  }, {})
+}
+
+function getListSizeDirectiveDefaultValueHelper(
+  tokenizedPath: string[],
+  typeNode: TypeNode,
+  config: InternalConfiguration,
+  schema: GraphQLSchema
+) {
+  const obj = {}
+  if (tokenizedPath.length < 1) throw new Error('bad token path')
+  if (tokenizedPath.length < 2) {
+    return getDefaultArgValue(schema, config, typeNode)
+  }
+
+  const namedType = unwrapType(typeNode)
+  if (namedType.kind === 'NamedType') {
+    const type = schema.getType(namedType.name.value)
+    if (type.astNode.kind === 'InputObjectTypeDefinition') {
+      let nextType = type.astNode.fields.find((field) => {
+        return field.name.value === tokenizedPath[1]
+      })
+      if (
+        typeNode.kind === 'ListType' ||
+        (typeNode.kind === 'NonNullType' && typeNode.type.kind === 'ListType')
+      ) {
+        obj[tokenizedPath[1]] = [
+          getListSizeDirectiveDefaultValueHelper(
+            tokenizedPath.slice(1, tokenizedPath.length),
+            nextType.type,
+            config,
+            schema
+          )
+        ]
+      } else {
+        obj[tokenizedPath[1]] = getListSizeDirectiveDefaultValueHelper(
+          tokenizedPath.slice(1, tokenizedPath.length),
+          nextType.type,
+          config,
+          schema
+        )
+      }
+    }
+  }
+  return obj
+}
+
+function unwrapType(type: TypeNode): NamedTypeNode {
+  if (type.kind === 'ListType' || type.kind === 'NonNullType') {
+    return unwrapType(type.type)
+  } else {
+    return type
   }
 }
 

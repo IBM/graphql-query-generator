@@ -9,6 +9,7 @@ import {
 } from 'graphql'
 import { Configuration, generateRandomQuery } from '../src/index'
 import { GITHUB_PROVIDERS } from './github-providers'
+import * as dedent from 'dedent'
 
 // Globals
 const schemaDef = fs.readFileSync('./test/fixtures/schema.graphql').toString()
@@ -667,13 +668,38 @@ test('Use providePlaceholders option', () => {
     providePlaceholders: true,
     ignoreOptionalArguments: false
   }
-  const { variableValues } = generateRandomQuery(schema, config)
-  expect(variableValues).toEqual({
-    Query__field__user: 'PLACEHOLDER',
-    Query__field__active: true,
-    Query__field__age: 10,
-    Query__field__worth: 10.0,
-    Query__field__id: 'PLACEHOLDER',
-    Query__field__custom: 'PLACEHOLDER'
-  })
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
+  const query = print(queryDocument)
+  expect(print(queryDocument).replace(/\s/g, '')).toEqual(
+    `
+    query RandomQuery(
+      $Query__field__user: String!,
+      $Query__field__active: Boolean!,
+      $Query__field__age: Int,
+      $Query__field__worth: Float,
+      $Query__field__id: ID,
+      $Query__field__custom: Custom) {
+      field(
+        user:   $Query__field__user,
+        active: $Query__field__active,
+        age:    $Query__field__age,
+        worth:  $Query__field__worth,
+        id:     $Query__field__id,
+        custom: $Query__field__custom)
+    }`.replace(/\s/g, '')
+  )
+  const variables = JSON.stringify(variableValues, null, 2)
+  expect(variables.trim()).toEqual(
+    dedent(`
+      {
+        "Query__field__user": "PLACEHOLDER",
+        "Query__field__active": true,
+        "Query__field__age": 10,
+        "Query__field__worth": 10,
+        "Query__field__id": "PLACEHOLDER",
+        "Query__field__custom": "PLACEHOLDER"
+      }
+    `).trim()
+    // TODO:  YAHEL: worth here should be 10.0, but I think precision is lost in test check
+  )
 })
