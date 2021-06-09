@@ -517,27 +517,23 @@ function getMissingSlicingArg(
   // Return the first slicing arguments:
   return field.arguments.find((arg) => {
     return slicingArguments.find((slicingArgument) => {
-      let result = null
       let slicingArgumentTokens = slicingArgument.split('.')
-      for (let i = 0; i < slicingArgumentTokens.length; i++) {
-        let slicingArgumentToken = slicingArgumentTokens[i]
-        if (slicingArgumentToken === arg.name.value) {
-          result = arg
-          if (
-            arg.kind === Kind.INPUT_VALUE_DEFINITION &&
-            arg.type.kind === Kind.NAMED_TYPE
-          ) {
-            let type = schema.getType(arg.type.name.value)
-            let ret = getMissingSlicingArgHelper1(
-              slicingArgumentTokens.slice(1, slicingArgumentTokens.length),
-              type,
-              schema
-            )
-            if (ret) return arg
-          }
+      let slicingArgumentToken = slicingArgumentTokens[0]
+      if (slicingArgumentToken === arg.name.value) {
+        if (
+          arg.kind === Kind.INPUT_VALUE_DEFINITION &&
+          arg.type.kind === Kind.NAMED_TYPE
+        ) {
+          let type = schema.getType(arg.type.name.value)
+          let ret = getMissingSlicingArgHelper1(
+            slicingArgumentTokens.slice(1, slicingArgumentTokens.length),
+            type,
+            schema
+          )
+          if (ret) return arg
         }
+        return arg
       }
-      return result
     })
   })
 }
