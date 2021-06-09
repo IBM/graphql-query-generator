@@ -18,7 +18,8 @@ import {
   print,
   StringValueNode,
   NamedTypeNode,
-  DirectiveNode
+  DirectiveNode,
+  GraphQLNamedType
 } from 'graphql'
 
 import * as seedrandom from 'seedrandom'
@@ -517,32 +518,64 @@ function getMissingSlicingArg(
   return field.arguments.find((arg) => {
     return slicingArguments.find((slicingArgument) => {
       let result = null
-      let candidates = [arg]
       let slicingArgumentTokens = slicingArgument.split('.')
       for (let i = 0; i < slicingArgumentTokens.length; i++) {
         let slicingArgumentToken = slicingArgumentTokens[i]
-        for (let j = 0; j < candidates.length; j++) {
-          let candidate = candidates[j]
-          if (slicingArgumentToken === candidate.name.value) {
-            result = candidate
-            if (
-              candidate.kind === Kind.INPUT_VALUE_DEFINITION &&
-              candidate.type.kind === Kind.NAMED_TYPE
-            ) {
-              let type = schema.getType(candidate.type.name.value)
-              if (type?.astNode?.kind === Kind.INPUT_OBJECT_TYPE_DEFINITION) {
-                //candidates = type.astNode.fields.map((field)=>{return field}) // TODO use this
-                return type.astNode.fields.find((field) => {
-                  return field.name.value === slicingArgumentTokens[i + 1]
-                })
-              }
-            }
+        if (slicingArgumentToken === arg.name.value) {
+          result = arg
+          if (
+            arg.kind === Kind.INPUT_VALUE_DEFINITION &&
+            arg.type.kind === Kind.NAMED_TYPE
+          ) {
+            let type = schema.getType(arg.type.name.value)
+            let ret = getMissingSlicingArgHelper1(
+              slicingArgumentTokens.slice(1, slicingArgumentTokens.length),
+              type,
+              schema
+            )
+            if (ret) return arg
           }
         }
       }
       return result
     })
   })
+}
+
+function getMissingSlicingArgHelper1(
+  tokenizedPath: string[],
+  type: GraphQLNamedType,
+  schema: GraphQLSchema
+) {
+  if (type?.astNode?.kind === Kind.INPUT_OBJECT_TYPE_DEFINITION) {
+    //candidates = type.astNode.fields.map((field)=>{return field}) // TODO use this
+    return type.astNode.fields.find((field) => {
+      let ret = getMissingSlicingArgHelper(
+        tokenizedPath.slice(1, tokenizedPath.length),
+        field,
+        schema
+      )
+      if (ret) return ret
+    })
+  }
+}
+
+function getMissingSlicingArgHelper(
+  tokenizedPath: string[],
+  field: InputValueDefinitionNode,
+  schema: GraphQLSchema
+) {
+  if (tokenizedPath.length < 1 || field.name.value !== tokenizedPath[0])
+    return undefined
+
+  if (
+    field.kind !== Kind.INPUT_VALUE_DEFINITION ||
+    field.type.kind !== Kind.NAMED_TYPE
+  )
+    return undefined
+
+  let type = schema.getType(field.type.name.value)
+  return getMissingSlicingArgHelper1(tokenizedPath, type, schema)
 }
 
 function getArgsAndVars(
