@@ -700,6 +700,5 @@ test('Use providePlaceholders option', () => {
         "Query__field__custom": "PLACEHOLDER"
       }
     `).trim()
-    // TODO:  YAHEL: worth here should be 10.0, but I think precision is lost in test check
   )
 })
