@@ -136,29 +136,20 @@ export function getDefaultArgValue(
     } else if (type.name.value === 'Boolean') {
       return true
     } else {
-      if (schema.getType(type.name.value)) {
-        const typeDef = schema.getType(type.name.value)
-        if (
-          !(typeDef && typeDef?.astNode?.kind === 'InputObjectTypeDefinition')
-        )
-          return 'PLACEHOLDER'
-        //throw new Error('Cannot find input object type definition with this name ' + type.name.value)
-        if (typeDef.astNode.kind === 'InputObjectTypeDefinition') {
-          const fields = typeDef.astNode.fields
-          const requiredArguments = Object.entries(fields)
-            .map(([_, value]) => value)
-            .filter((type) => {
-              return considerArgument(type, config)
-            })
-          return requiredArguments.reduce((obj, arg) => {
-            obj[arg.name.value] = getDefaultArgValue(schema, config, arg.type)
-            return obj
-          }, {})
-        }
-      } else {
-        // Case: String, ID, or custom scalar:
+      const typeDef = schema.getType(type.name.value)
+      if (!typeDef || typeDef?.astNode?.kind !== 'InputObjectTypeDefinition')
         return 'PLACEHOLDER'
-      }
+
+      const fields = typeDef.astNode.fields
+      const requiredArguments = Object.entries(fields)
+        .map(([_, value]) => value)
+        .filter((type) => {
+          return considerArgument(type, config)
+        })
+      return requiredArguments.reduce((obj, arg) => {
+        obj[arg.name.value] = getDefaultArgValue(schema, config, arg.type)
+        return obj
+      }, {})
     }
   } else if (type.kind === 'NonNullType') {
     return getDefaultArgValue(schema, config, type.type)
