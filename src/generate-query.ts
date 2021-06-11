@@ -507,54 +507,15 @@ function getMissingSlicingArg(
 
   // Returns the first slicing argument
   // if slicing argument can be split on '.'
-  // then we have a nested slicing argument,
-  // and we need to follow the path all the way
-  // down to the leaf input field definition
+  // then we just need to check the first level match
   return field.arguments.find((arg) => {
     return slicingArguments.find((slicingArgument) => {
-      return getMissingSlicingArgHelperField(
-        slicingArgument.split('.'),
-        arg,
-        schema
-      )
+      const tokenizedPath = slicingArgument.split('.')
+      if (tokenizedPath.length < 1) return false
+      else if (arg.name.value !== tokenizedPath[0]) return false
+      return true
     })
   })
-}
-
-function getMissingSlicingArgHelperFields(
-  tokenizedPath: string[],
-  type: GraphQLNamedType,
-  schema: GraphQLSchema
-): InputValueDefinitionNode {
-  if (type?.astNode?.kind === Kind.INPUT_OBJECT_TYPE_DEFINITION) {
-    return type.astNode.fields.find((field) => {
-      let ret = getMissingSlicingArgHelperField(
-        tokenizedPath.slice(1),
-        field,
-        schema
-      )
-      return ret
-    })
-  }
-}
-
-function getMissingSlicingArgHelperField(
-  tokenizedPath: string[],
-  field: InputValueDefinitionNode,
-  schema: GraphQLSchema
-): InputValueDefinitionNode {
-  if (tokenizedPath.length < 1) return undefined
-  else if (field.name.value !== tokenizedPath[0]) return undefined
-  else if (tokenizedPath.length === 1) return field
-
-  if (
-    field.kind !== Kind.INPUT_VALUE_DEFINITION ||
-    field.type.kind !== Kind.NAMED_TYPE
-  )
-    return undefined
-
-  const type = schema.getType(field.type.name.value)
-  return getMissingSlicingArgHelperFields(tokenizedPath, type, schema)
 }
 
 function getArgsAndVars(
