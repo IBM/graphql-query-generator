@@ -696,12 +696,7 @@ function getListSizeDirectiveDefaultValue(
     slicingArgumentsPaths.length === 1 &&
     slicingArgumentsTokenizedPaths[0].length === 1
   )
-    return getListSizeDirectiveDefaultValueHelper(
-      slicingArgumentsTokenizedPaths[0],
-      typeNode,
-      config,
-      schema
-    )
+    return getDefaultArgValue(schema, config, typeNode)
 
   return slicingArgumentsTokenizedPaths.reduce((res, tokenizedPath) => {
     return merge.recursive(
