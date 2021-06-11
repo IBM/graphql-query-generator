@@ -608,13 +608,15 @@ function getArgsAndVars(
             schema
           )
 
-          if (typeof value !== 'object') {
-            variableValues[varName] = value
-          } else {
-            variableValues[varName] = merge.recursive(
-              value,
-              variableValues[varName]
-            )
+          if (value !== undefined) {
+            if (typeof value !== 'object') {
+              variableValues[varName] = value
+            } else {
+              variableValues[varName] = merge.recursive(
+                value,
+                variableValues[varName]
+              )
+            }
           }
         }
       } else if (arg.type.kind === 'NonNullType') {
@@ -707,32 +709,24 @@ function getListSizeDirectiveDefaultValue(
 
   const requireOneSlicingArg = getRequireOneSlicingArgument(listSizeDirective)
   if (
-    !requireOneSlicingArg ||
-    (requireOneSlicingArg.value as BooleanValueNode).value === true
+    requireOneSlicingArg &&
+    (requireOneSlicingArg.value as BooleanValueNode).value === false
   ) {
-    slicingArgumentsPaths = slicingArgumentsPaths.slice(0, 1)
+    throw new Error(
+      'getListSizeDirectiveDefaultValue does not handle cases where requiredOneSlicingArg is set to false'
+    )
   }
-  const slicingArgumentsTokenizedPaths = slicingArgumentsPaths.map((value) =>
-    value.split('.')
-  )
+  const slicingArgumentsTokenizedPath = slicingArgumentsPaths[0].split('.')
 
-  if (
-    slicingArgumentsPaths.length === 1 &&
-    slicingArgumentsTokenizedPaths[0].length === 1
-  )
+  if (slicingArgumentsTokenizedPath.length === 1)
     return getDefaultArgValue(schema, config, typeNode)
 
-  return slicingArgumentsTokenizedPaths.reduce((res, tokenizedPath) => {
-    return merge.recursive(
-      res,
-      getListSizeDirectiveDefaultValueHelper(
-        tokenizedPath,
-        typeNode,
-        config,
-        schema
-      )
-    )
-  }, {})
+  return getListSizeDirectiveDefaultValueHelper(
+    slicingArgumentsTokenizedPath,
+    typeNode,
+    config,
+    schema
+  )
 }
 
 function getListSizeDirectiveDefaultValueHelper(

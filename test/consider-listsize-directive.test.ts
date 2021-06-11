@@ -411,3 +411,81 @@ test(`Multiple (single level) slicing arguments with requireOneSlicinArgument se
   )
   expect(validate(schema, queryDocument)).toEqual([])
 })
+
+test(`@listSize with only assumedSize`, () => {
+  const schema = buildSchema(`
+    directive @listSize(requireOneSlicingArgument: Boolean = true, assumedSize: Int, slicingArguments: [String], sizedFields: [String]) on FIELD_DEFINITION
+
+    type Order {
+      id: ID
+      date: String
+    }
+
+    type Query {
+      orders(first: Int, after: ID, last: Int, before: ID): [Order] @listSize(assumedSize: 10)
+    }
+  `)
+  const config = {
+    providePlaceholders: true,
+    seed: 1
+  }
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
+  const query = print(queryDocument)
+  expect(query.trim()).toEqual(
+    dedent(`
+      query RandomQuery {
+        orders {
+          id
+          date
+        }
+      }
+    `).trim()
+  )
+  const variables = JSON.stringify(variableValues, null, 2)
+  expect(variables.trim()).toEqual(
+    dedent(`
+      {}
+    `).trim()
+  )
+  expect(validate(schema, queryDocument)).toEqual([])
+})
+
+test(`@listSize with assumedSize and required argument`, () => {
+  const schema = buildSchema(`
+    directive @listSize(requireOneSlicingArgument: Boolean = true, assumedSize: Int, slicingArguments: [String], sizedFields: [String]) on FIELD_DEFINITION
+
+    type Order {
+      id: ID
+      date: String
+    }
+
+    type Query {
+      orders(first: Int!, after: ID, last: Int, before: ID): [Order] @listSize(assumedSize: 10)
+    }
+  `)
+  const config = {
+    providePlaceholders: true,
+    seed: 1
+  }
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
+  const query = print(queryDocument)
+  expect(query.trim()).toEqual(
+    dedent(`
+      query RandomQuery($Query__orders__first: Int!) {
+        orders(first: $Query__orders__first) {
+          id
+          date
+        }
+      }
+    `).trim()
+  )
+  const variables = JSON.stringify(variableValues, null, 2)
+  expect(variables.trim()).toEqual(
+    dedent(`
+      {
+        "Query__orders__first": 10
+      }
+    `).trim()
+  )
+  expect(validate(schema, queryDocument)).toEqual([])
+})
