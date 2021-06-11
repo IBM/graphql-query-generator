@@ -128,32 +128,41 @@ export function getDefaultArgValue(
   config: InternalConfiguration,
   type: TypeNode
 ) {
-  if (type.kind === 'NamedType') {
+  if (type.kind === 'NonNullType') {
+    return getDefaultArgValue(schema, config, type.type)
+  } else if (type.kind === 'ListType') {
+    return [getDefaultArgValue(schema, config, type.type)]
+  } else {
+    // Built in GraphQL scalars
     if (type.name.value === 'Int') {
       return 10
     } else if (type.name.value === 'Float') {
       return 10.0
     } else if (type.name.value === 'Boolean') {
       return true
-    } else {
-      const typeDef = schema.getType(type.name.value)
-      if (!typeDef || typeDef?.astNode?.kind !== 'InputObjectTypeDefinition')
-        return 'PLACEHOLDER'
-
-      const fields = typeDef.astNode.fields
-      const requiredArguments = Object.entries(fields)
-        .map(([_, value]) => value)
-        .filter((type) => {
-          return considerArgument(type, config)
-        })
-      return requiredArguments.reduce((obj, arg) => {
-        obj[arg.name.value] = getDefaultArgValue(schema, config, arg.type)
-        return obj
-      }, {})
     }
-  } else if (type.kind === 'NonNullType') {
-    return getDefaultArgValue(schema, config, type.type)
-  } else if (type.kind === 'ListType') {
-    return [getDefaultArgValue(schema, config, type.type)]
+
+    // Recurse if the type is an input object
+    const typeDef = schema.getType(type.name.value)
+    if (typeDef && typeDef.astNode?.kind === 'InputObjectTypeDefinition') {
+      const fields = typeDef.astNode?.fields
+      if (fields) {
+        // Identify requiredArguments
+        const requiredArguments = Object.entries(fields)
+          .map(([_, value]) => value)
+          .filter((type) => {
+            return considerArgument(type, config)
+          })
+
+        // Recurse into required arguments and compose object value
+        return requiredArguments.reduce((obj, arg) => {
+          obj[arg.name.value] = getDefaultArgValue(schema, config, arg.type)
+          return obj
+        }, {})
+      }
+    }
   }
+
+  // Unknown default value
+  return 'PLACEHOLDER'
 }
