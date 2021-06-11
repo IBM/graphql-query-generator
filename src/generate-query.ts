@@ -605,10 +605,13 @@ function getArgsAndVars(
             config,
             schema
           )
-          variableValues[varName] = merge.recursive(
-            listSizeDirectiveDefaultValue,
-            variableValues[varName]
-          )
+          if (typeof listSizeDirectiveDefaultValue !== 'object')
+            variableValues[varName] = listSizeDirectiveDefaultValue
+          else
+            variableValues[varName] = merge.recursive(
+              listSizeDirectiveDefaultValue,
+              variableValues[varName]
+            )
         }
       } else if (arg.type.kind === 'NonNullType') {
         throw new Error(
@@ -688,6 +691,17 @@ function getListSizeDirectiveDefaultValue(
   const slicingArgumentsTokenizedPaths = slicingArgumentsPaths.map((value) =>
     value.split('.')
   )
+
+  if (
+    slicingArgumentsPaths.length === 1 &&
+    slicingArgumentsTokenizedPaths[0].length === 1
+  )
+    return getListSizeDirectiveDefaultValueHelper(
+      slicingArgumentsTokenizedPaths[0],
+      typeNode,
+      config,
+      schema
+    )
 
   return slicingArgumentsTokenizedPaths.reduce((res, tokenizedPath) => {
     return merge.recursive(
