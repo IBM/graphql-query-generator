@@ -43,7 +43,11 @@ test(`Add "first" slicing argument when defined in @listSize`, () => {
       orders(first: Int, after: ID, last: Int, before: ID): [Order] @listSize(slicingArguments: ["first"])
     }
   `)
-  const { queryDocument } = generateRandomQuery(schema, { seed: 1 })
+  const config = {
+    providePlaceholders: true,
+    seed: 1
+  }
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
   const query = print(queryDocument)
   expect(query.trim()).toEqual(
     dedent(`
@@ -52,6 +56,14 @@ test(`Add "first" slicing argument when defined in @listSize`, () => {
           id
           date
         }
+      }
+    `).trim()
+  )
+  const variables = JSON.stringify(variableValues, null, 2)
+  expect(variables.trim()).toEqual(
+    dedent(`
+      {
+        "Query__orders__first": 10
       }
     `).trim()
   )
