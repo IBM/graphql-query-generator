@@ -278,7 +278,7 @@ test(`Add nested required argument ("args.first")`, () => {
   expect(validate(schema, queryDocument)).toEqual([])
 })
 
-test(`Add nested slicing argument ("args.first" and "args.complex.last") when defined in @listSize`, () => {
+test(`Add nested required argument ("args.first" and "args.complex.last")`, () => {
   const schema = buildSchema(`
     directive @listSize(requireOneSlicingArgument: Boolean = true, assumedSize: Int, slicingArguments: [String], sizedFields: [String]) on FIELD_DEFINITION
     
@@ -300,6 +300,62 @@ test(`Add nested slicing argument ("args.first" and "args.complex.last") when de
 
     type Query {
       orders(args: Args!): [Order]
+    }
+  `)
+  const config = {
+    providePlaceholders: true,
+    seed: 1
+  }
+  const { queryDocument, variableValues } = generateRandomQuery(schema, config)
+  const query = print(queryDocument)
+  expect(query.trim()).toEqual(
+    dedent(`
+      query RandomQuery($Query__orders__args: Args!) {
+        orders(args: $Query__orders__args) {
+          id
+          date
+        }
+      }
+    `).trim()
+  )
+  const variables = JSON.stringify(variableValues, null, 2)
+  expect(variables.trim()).toEqual(
+    dedent(`
+      {
+        "Query__orders__args": {
+          "first": 10,
+          "complex": {
+            "last": 10
+          }
+        }
+      }
+    `).trim()
+  )
+  expect(validate(schema, queryDocument)).toEqual([])
+})
+
+test(`Add nested slicing argument ("args.first") and required argument ("args.complex.last")`, () => {
+  const schema = buildSchema(`
+    directive @listSize(requireOneSlicingArgument: Boolean = true, assumedSize: Int, slicingArguments: [String], sizedFields: [String]) on FIELD_DEFINITION
+    
+    input MoreArgs {
+      last: Int!
+      before: ID
+    }
+
+    input Args {
+      first: Int
+      after: ID
+      complex: MoreArgs!
+    }
+
+    type Order {
+      id: ID
+      date: String
+    }
+
+    type Query {
+      orders(args: Args!): [Order] @listSize(slicingArguments: ["args.first"])
     }
   `)
   const config = {
