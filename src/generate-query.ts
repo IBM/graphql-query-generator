@@ -700,6 +700,15 @@ function getListSizeDirectiveDefaultValue(
   config: InternalConfiguration,
   schema: GraphQLSchema
 ) {
+  // if requiredOneSlicingArg is false then we do not add anything because none of the slicingArguments are required
+  const requireOneSlicingArg = getRequireOneSlicingArgument(listSizeDirective)
+  if (
+    requireOneSlicingArg &&
+    (requireOneSlicingArg.value as BooleanValueNode).value === false
+  ) {
+    return undefined
+  }
+
   const slicingArgumentsArg = getSlicingArguments(listSizeDirective)
   if (!slicingArgumentsArg) return undefined
 
@@ -708,22 +717,13 @@ function getListSizeDirectiveDefaultValue(
    *
    * Extract paths from slicingArgumentsArguments
    */
-  let slicingArgumentsPaths = (slicingArgumentsArg.value as ListValueNode).values.map(
+  const slicingArgumentsPaths = (slicingArgumentsArg.value as ListValueNode).values.map(
     (value) => {
       if (value.kind === 'StringValue') return value.value
     }
   )
 
   if (slicingArgumentsPaths.length > 0) {
-    // if requiredOneSlicingArg is false then we do not add anything because none of the slicingArguments are required
-    const requireOneSlicingArg = getRequireOneSlicingArgument(listSizeDirective)
-    if (
-      requireOneSlicingArg &&
-      (requireOneSlicingArg.value as BooleanValueNode).value === false
-    ) {
-      return undefined
-    }
-
     const slicingArgumentsTokenizedPath = slicingArgumentsPaths[0].split('.')
     return getListSizeDirectiveDefaultValueHelper(
       slicingArgumentsTokenizedPath,
@@ -740,12 +740,15 @@ function getListSizeDirectiveDefaultValueHelper(
   config: InternalConfiguration,
   schema: GraphQLSchema
 ) {
-  if (tokenizedPath.length < 1) throw new Error('bad token path')
-  if (tokenizedPath.length < 2) {
+  if (tokenizedPath.length === 0) {
+    return undefined
+  }
+
+  if (tokenizedPath.length === 1) {
     return getDefaultArgValue(schema, config, typeNode)
   }
 
-  const obj = {}
+  const result = {}
 
   const namedType = unwrapType(typeNode)
   if (namedType.kind === 'NamedType') {
@@ -764,14 +767,14 @@ function getListSizeDirectiveDefaultValueHelper(
 
       // Add value depending if it is a list or not
       if (!isListType(typeNode)) {
-        obj[tokenizedPath[1]] = value
+        result[tokenizedPath[1]] = value
       } else {
-        obj[tokenizedPath[1]] = [value]
+        result[tokenizedPath[1]] = [value]
       }
     }
   }
 
-  return obj
+  return result
 }
 
 /**
