@@ -545,13 +545,18 @@ function getArgsAndVars(
     field,
     schema
   )
-  if (missingSlicingArg) requiredArguments.push(missingSlicingArg)
+  if (
+    missingSlicingArg &&
+    !requiredArguments.find((arg) => {
+      return arg.name.value === missingSlicingArg.name.value
+    })
+  ) {
+    requiredArguments.push(missingSlicingArg)
+  }
   requiredArguments.forEach((arg) => {
     const varName = `${nodeName}__${fieldName}__${arg.name.value}`
-    if (!variableDefinitionsMap[varName]) {
-      args.push(getVariable(arg.name.value, varName))
-      variableDefinitionsMap[varName] = getVariableDefinition(varName, arg.type)
-    }
+    args.push(getVariable(arg.name.value, varName))
+    variableDefinitionsMap[varName] = getVariableDefinition(varName, arg.type)
   })
 
   const variableValues: { [varName: string]: any } = {}
