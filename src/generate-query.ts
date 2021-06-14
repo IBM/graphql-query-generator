@@ -535,16 +535,27 @@ function getArgsAndVars(
   const variableDefinitionsMap: {
     [varName: string]: VariableDefinitionNode
   } = {}
+
   const requiredArguments = allArgs.filter((arg) =>
     considerArgument(arg, config)
   )
-  // Check for slicing arguments defined in a @listSize directive that should
-  // be present:
+
+  /**
+   * Check for slicing arguments defined in a @listSize directive that should
+   * be present:
+   */
   const missingSlicingArg = getMissingSlicingArg(
     requiredArguments,
     field,
     schema
   )
+
+  /**
+   * Check if missingSlicingArg is already in requiredArguments
+   *
+   * Because slicing arguments may be deeply nested (input object types), there
+   * isn't a simple way to check for conflicts
+   */
   if (
     missingSlicingArg &&
     !requiredArguments.find((arg) => {
@@ -553,6 +564,7 @@ function getArgsAndVars(
   ) {
     requiredArguments.push(missingSlicingArg)
   }
+
   requiredArguments.forEach((arg) => {
     const varName = `${nodeName}__${fieldName}__${arg.name.value}`
     args.push(getVariable(arg.name.value, varName))
