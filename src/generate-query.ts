@@ -714,26 +714,24 @@ function getListSizeDirectiveDefaultValue(
     }
   )
 
-  const requireOneSlicingArg = getRequireOneSlicingArgument(listSizeDirective)
-  if (
-    requireOneSlicingArg &&
-    (requireOneSlicingArg.value as BooleanValueNode).value === false
-  ) {
-    throw new Error(
-      'getListSizeDirectiveDefaultValue does not handle cases where requiredOneSlicingArg is set to false'
+  if (slicingArgumentsPaths.length > 0) {
+    // if requiredOneSlicingArg is false then we do not add anything because none of the slicingArguments are required
+    const requireOneSlicingArg = getRequireOneSlicingArgument(listSizeDirective)
+    if (
+      requireOneSlicingArg &&
+      (requireOneSlicingArg.value as BooleanValueNode).value === false
+    ) {
+      return undefined
+    }
+
+    const slicingArgumentsTokenizedPath = slicingArgumentsPaths[0].split('.')
+    return getListSizeDirectiveDefaultValueHelper(
+      slicingArgumentsTokenizedPath,
+      typeNode,
+      config,
+      schema
     )
   }
-  const slicingArgumentsTokenizedPath = slicingArgumentsPaths[0].split('.')
-
-  if (slicingArgumentsTokenizedPath.length === 1)
-    return getDefaultArgValue(schema, config, typeNode)
-
-  return getListSizeDirectiveDefaultValueHelper(
-    slicingArgumentsTokenizedPath,
-    typeNode,
-    config,
-    schema
-  )
 }
 
 function getListSizeDirectiveDefaultValueHelper(
